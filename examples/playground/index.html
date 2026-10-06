@@ -40,6 +40,8 @@
   .opts { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .opt { text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; }
   .opt:hover { border-color: var(--accent); }
+  .opt.chosen { border-color: var(--accent); background: var(--chip); }
+  .opt.chosen::after { content: "chosen — pick another to change your answer"; display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
   .opt small { display: block; color: var(--muted); }
   .prov { display: grid; grid-template-columns: minmax(110px, 180px) 1fr; gap: 4px 12px; font-size: 12.5px; }
   .prov .k { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
@@ -178,6 +180,7 @@ function render(card, q, { result, data, timing }) {
   if (result.outcome === "execute") h += `<div class="actions"><button class="small" data-accept="${esc(result.id)}">Save as definition…</button><button class="small" data-follow="1">Ask a follow-up</button></div>`;
   card.innerHTML = h;
   card.querySelectorAll(".opt").forEach((b) => (b.onclick = async () => {
+    card.querySelectorAll(".opt").forEach((o) => o.classList.toggle("chosen", o === b));
     const label = `${q}  →  ${b.firstChild.textContent.trim()}`;
     const c2 = pending(label);
     try { render(c2, label, await api("/api/answer", { clarification: b.dataset.c, option: b.dataset.o })); } catch (e) { c2.innerHTML += `<div class="err">${esc(e.message)}</div>`; }

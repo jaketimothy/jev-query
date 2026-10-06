@@ -256,12 +256,12 @@ function measureQuantity(request: string, q: ChoiceQuestion): Answer {
         s += 2 + m;
         // the thing counted comes right after "how many" / "number of" / "most"
         const head = stem(terms[0].split(" ").pop()!);
-        if (new RegExp(`(how many|number of|count of|most|fewest|least) ((?!by |per |of |in )\\w+ ){0,2}${head}`).test(r)) s += 2;
+        if (new RegExp(`(how many|number of|count of|most|fewest|least) ((?!by |per |of |in |were |was |are |is |did |do |does |have |has |had )\\w+ ){0,2}${head}`).test(r)) s += 2;
         if (new RegExp(`${head}\\w* count`).test(r)) s += 2;
         // "Orders by …", "Share of orders by …": the noun right at the start / after "of"
         if (new RegExp(`^(share of |running \\w+ of |total of )?(new )?${head}\\w*\\b`).test(r)) s += 2;
         // a noun after by/per/each is a dimension, not the thing counted
-        if (new RegExp(`\\b(by|per|each|every|in each) (\\w+ )?${head}`).test(r) && !new RegExp(`(how many|number of|count of) ((?!by |per |of |in )\\w+ ){0,2}${head}`).test(r)) s -= 2.5;
+        if (new RegExp(`\\b(by|per|each|every|in each) (\\w+ )?${head}`).test(r) && !new RegExp(`(how many|number of|count of) ((?!by |per |of |in |were |was |are |is |did |do |does |have |has |had )\\w+ ){0,2}${head}`).test(r)) s -= 2.5;
       }
     } else if (kind === "dur") {
       const label = lc(d);
