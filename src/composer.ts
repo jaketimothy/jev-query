@@ -4,9 +4,9 @@ import { schemaSlice } from "./compose/state.js";
 import type { Db } from "./db/types.js";
 import { analyzeJoins, type Ambiguity } from "./joins/analyze.js";
 import { JoinGraph, pathOptionText } from "./joins/graph.js";
-import { stem, contentTokens, STOPWORDS } from "./nl/lexicon.js";
+import { stem, contentTokens, STOPWORDS, US_STATES, COUNTRIES } from "./nl/lexicon.js";
 import { linkValues, retrieveTables, type ValueLink } from "./nl/link.js";
-import { extractSpans, type Span } from "./nl/spans.js";
+import { extractSpans, MONTH_NAMES, type Span } from "./nl/spans.js";
 import type { Answer, Answers, ChoiceAnswer, ChoiceQuestion, NoulQuestion, Oracle, Question, Questions, ScoreAnswer } from "./oracle/types.js";
 import { averageChoices, choiceMargin, noulConfidence } from "./oracle/types.js";
 import { AGGS, capitalize, humanRef, legalAggs, measureCandidates, measureFromSaved, slug, toMeasure, type MeasureCandidate } from "./plan/build.js";
@@ -98,6 +98,8 @@ interface Session {
   pins: Record<string, string>;
   memo: Map<string, Answer>;
   rounds: RoundLog[];
+  /** probing a pinned alternative during gating: stop after compile */
+  probe?: boolean;
 }
 
 type Dist = Record<string, number>;
@@ -211,6 +213,7 @@ export class Composer {
   readonly settings: ResolvedSettings;
   readonly graph: JoinGraph;
   private sessions = new Map<string, Session>();
+  private readonly vocab: Set<string>;
 
   private constructor(
     readonly db: Db,
@@ -222,6 +225,7 @@ export class Composer {
   ) {
     this.settings = resolveSettings(config);
     this.graph = new JoinGraph(model);
+    this.vocab = schemaVocabulary(model);
   }
 
   /** Introspect the database (unless a model is given) and build a composer. */
@@ -453,6 +457,7 @@ export class Composer {
     try {
       compiled = compile(plan, model, this.settings, this.graph);
     } catch (e) {
+      if (e instanceof CompileError && s.probe) return this.finish(s, { outcome: "decline", reason: `illegal: ${e.message}` }, provenance, warnings);
       if (e instanceof CompileError) return this.finish(s, this.clarifyFromCompile(s, e, plan), provenance, warnings);
       throw e;
     }
@@ -460,7 +465,8 @@ export class Composer {
 
     // ---------------------------------------------------------------- gating on load-bearing decisions
     // (before R3: a specific "which X?" beats a generic coverage question, and saves a round)
-    const gate = this.gate(s, provenance, plan, narrative);
+    if (s.probe) return this.finish(s, { outcome: "execute", plan, sql: compiled.sql }, provenance, warnings);
+    const gate = await this.gate(s, provenance, plan, narrative);
     if (gate) return this.finish(s, gate, provenance, warnings);
     if (Object.entries(s.pins).some(([k, v]) => k.startsWith("coverage:") && v === "rephrase")) {
       return this.finish(s, { outcome: "decline", reason: "The request uses terms the composer cannot map to the data yet; please rephrase." }, provenance, warnings);
@@ -607,7 +613,8 @@ export class Composer {
         );
         for (const c of Object.values(tm.columns)) {
           if (c.hidden || tm.display.includes(c.name)) continue;
-          const ok = c.role === "dimension_categorical" || c.role === "boolean_flag" || (c.role === "dimension_text" && !c.pii && (c.nDistinct ?? 1e9) <= 5000) || (c.role === "attribute" && c.kind === "number" && /year/.test(c.name));
+          const altKey = c.isUnique && tm.display.length > 0 && !tm.display.includes(c.name);
+          const ok = !altKey && (c.role === "dimension_categorical" || c.role === "boolean_flag" || (c.role === "dimension_text" && !c.pii && (c.nDistinct ?? 1e9) <= 5000) || (c.role === "attribute" && c.kind === "number" && /year/.test(c.name)));
           if (!ok) continue;
           const id = `group_${i++}`;
           dimQ[id] = { alias: slug(c.name), label: `${tm.noun} ${c.humanName}`, kind: "column", column: `${t}.${c.name}`, table: t };
@@ -750,10 +757,18 @@ export class Composer {
         return { outcome: "decline", reason: "The request is not a question about this data." };
       }
       shape = (choiceKey as Shape) ?? "single_value";
+      // "the 20 most recent orders": ordering by time is a lookup, not a ranking by a quantity
+      const sortTop = argmax(dist(a1.sort_dir));
+      let byCode = false;
+      if (!pinned && shape === "ranking" && (sortTop === "newest_first" || sortTop === "oldest_first") && (sd.lookup ?? 0) >= 0.25) {
+        shape = "lookup";
+        byCode = true;
+        decide("shape", { about: "shape", value: shape, confidence: (sd.lookup ?? 0) + (sd.ranking ?? 0), answer: a1.shape, loadBearing: true, by: "code" });
+      }
       if (shape === "distribution") {
         return { outcome: "decline", reason: "Distributions (histograms) are not supported in v1." };
       }
-      decide("shape", { about: "shape", value: shape, confidence: pinned ? 1 : (a1.shape as ChoiceAnswer).confidence, answer: a1.shape, loadBearing: true, by: pinned ? "user" : "oracle" });
+      if (!byCode) decide("shape", { about: "shape", value: shape, confidence: pinned ? 1 : (a1.shape as ChoiceAnswer).confidence, answer: a1.shape, loadBearing: true, by: pinned ? "user" : "oracle" });
     }
 
     const plan: QueryPlan = base ? { ...structuredClone(base) } : emptyPlan();
@@ -764,6 +779,7 @@ export class Composer {
     for (const sp of meta.numSpans) probs[sp.id] = { ...dist(a1[`role_${sp.id}`]) };
     // year-like numbers next to no other role are dates; code knows this deterministically
     for (const sp of meta.numSpans) if (sp.yearLike) probs[sp.id] = { year_or_date: 0.95, none: 0.05 };
+    for (const sp of meta.numSpans) if (pins[`role:${sp.id}`]) probs[sp.id] = { [pins[`role:${sp.id}`]]: 1, none: 1e-6 };
     const assign = assignSpans(meta.numSpans.map((sp) => sp.id), probs, (r) => r.startsWith("threshold:") || r === "year_or_date" || r === "part_of_name");
     const roleOf = (sp: Span) => assign[sp.id]?.role ?? "none";
     for (const sp of meta.numSpans) decide(`role_${sp.id}`, { about: "span_role", value: roleOf(sp), confidence: assign[sp.id]?.p ?? 0, answer: a1[`role_${sp.id}`], loadBearing: roleOf(sp) !== "none", by: "oracle" });
@@ -860,7 +876,11 @@ export class Composer {
     if (!base) {
       const g = argmax(timeGrainD, shape === "trend" ? ["none"] : []);
       if (g && g !== "none" && (shape === "trend" || (timeGrainD[g] ?? 0) > 0.5)) grain = g as TimeGrain;
+      // "revenue in Q2 2026" is one number, not a one-row quarterly series
+      const SINGLE: Record<string, TimeGrain> = { specific_quarter: "quarter", last_quarter: "quarter", this_quarter: "quarter", specific_month: "month", last_month: "month", this_month: "month", specific_year: "year", last_year: "year", this_year: "year", specific_day: "day", today: "day", yesterday: "day" };
+      if (grain && shape !== "trend" && periodSpec && SINGLE[periodSpec.key] === grain) grain = undefined;
       const dims: Dimension[] = [];
+      const pDim = new Map<Dimension, number>();
       // independent questions disagree: a confident "for each X" outranks a single-value shape
       if (shape === "single_value" && Object.keys(meta.dimQ).some((qid) => pYes(a1[qid]) > 0.85)) {
         shape = plan.shape = "breakdown";
@@ -870,10 +890,24 @@ export class Composer {
         if (!yes(a1[qid], 0.5)) continue;
         if (shape === "single_value") continue;
         dims.push(dim);
+        pDim.set(dim, pYes(a1[qid]));
         decide(qid, { about: "dimension", value: dim.column ?? dim.table, confidence: noulConfidence(pYes(a1[qid])), answer: a1[qid], loadBearing: true, by: "oracle" });
       }
-      // an entity and one of its own columns → keep the column
-      let kept = dims.filter((dd) => !(dd.kind === "entity" && dims.some((o) => o.kind === "column" && o.table === dd.table)));
+      // a ranking ranks its subject: the ranked entity is a dimension even when the request
+      // doesn't say "for each" ("top 3 products … in each category")
+      if (shape === "ranking" && subject && !model.tables[subject]?.junction && !dims.some((dd) => dd.table === subject) && plan.measures[0]?.table !== subject) {
+        const tm = model.tables[subject];
+        const ent: Dimension = { alias: slug(tm.noun), label: tm.noun, kind: "entity", table: subject };
+        dims.push(ent);
+        pDim.set(ent, 0.5);
+      }
+      // an entity and one of its own columns: keep whichever the request supports more (entity on ties)
+      let kept = dims.filter((dd) => {
+        const rival = dims.find((o) => o !== dd && o.table === dd.table && o.kind !== dd.kind && o.kind !== "time" && dd.kind !== "time");
+        if (!rival) return true;
+        const mine = pDim.get(dd) ?? 0, theirs = pDim.get(rival) ?? 0;
+        return dd.kind === "entity" ? mine >= theirs : mine > theirs;
+      });
       // dimensions must be reachable from the measure without fan-out; among same-named
       // candidates (orders.channel vs support_tickets.channel) keep the reachable one
       const mt = plan.measures[0]?.table;
@@ -1109,6 +1143,19 @@ export class Composer {
       }
     }
 
+    // an undefined business term ("revenue") mapped confidently to one column still has several
+    // reasonable definitions: ask once (spec J01); the accepted answer becomes a saved definition
+    const m0 = plan.measures[0];
+    // only words the schema vocabulary does not cover are candidates ("revenue"; not "order total")
+    const unknownTerms = m0 && (m0.kind === "column" || m0.kind === "duration") && !m0.saved && !s.pins.measure ? this.ungroundedTerms(s.request) : [];
+    if (unknownTerms.length) {
+      R.measure_business_term = noul({
+        term: unknownTerms.join(", "),
+        quantity: m0!.label,
+        question: "In `request`, is `term` the name of the quantity being computed (a business metric such as revenue or bookings), rather than an ordinary word, an attribute, or a filter?",
+      });
+    }
+
     // partition dimension for per-group top-N
     if (d.perGroup && plan.dimensions.length >= 2 && plan.shape !== "lookup") {
       const crit: Record<string, string> = {};
@@ -1123,6 +1170,21 @@ export class Composer {
 
     const a2 = Object.keys(R).length ? await this.ask_(s, "R2", state, R) : {};
 
+    // ---- business term → clarify the definition once
+    if (yes(a2.measure_business_term, 0.6) && m0?.column) {
+      const unit = m0.unit?.kind;
+      const opts = meta.cands
+        .filter((c) => c.kind === "column" && c.column && this.model.tables[c.table].columns[splitRef(c.column)[1]].unit?.kind === unit && legalAggs(this.model, c).includes(m0.agg))
+        .map((c) => ({ c, p: dist(a1.measure_quantity)[c.key] ?? 0 }))
+        .sort((x, y) => y.p - x.p)
+        .slice(0, 4);
+      if (opts.length >= 2) {
+        decide("measure_business_term", { about: "measure", value: true, confidence: noulConfidence(pYes(a2.measure_business_term)), answer: a2.measure_business_term, loadBearing: true, by: "oracle" });
+        return this.clarify(s, "measure", "That term can be computed more than one way here. Which definition should I use? (You can save the answer as a definition for everyone.)",
+          opts.map(({ c }) => ({ key: c.key, label: capitalize(humanRef(this.model, c.column!)), consequence: c.description })), "measure");
+      }
+    }
+
     // ---- time column
     let timeCol: string | undefined;
     if (needTime) {
@@ -1130,9 +1192,14 @@ export class Composer {
       else if (a2.time_column?.type === "choice") {
         const tc = a2.time_column;
         timeCol = tc.choice;
-        decide("time_column", { about: "time_column", value: tc.choice, confidence: tc.confidence, answer: tc, loadBearing: true, by: "oracle" });
         // flat distribution → convention default (C4)
-        if (tc.confidence < 0.4) timeCol = this.defaultTimeColumn(plan) ?? tc.choice;
+        // a flat distribution falls back to the convention default (C4, spec §5.8)
+        const [first, second] = top(tc, 2);
+        const def = this.defaultTimeColumn(plan);
+        if (def && (first?.p ?? 0) - (second?.p ?? 0) < 0.25 && [first?.key, second?.key].includes(def)) {
+          timeCol = def;
+          decide("time_column", { about: "time_column", value: def, confidence: (first?.p ?? 0) + (second?.p ?? 0), answer: tc, loadBearing: true, by: "default" });
+        } else decide("time_column", { about: "time_column", value: tc.choice, confidence: tc.confidence, answer: tc, loadBearing: true, by: "oracle" });
       } else timeCol = timeCands[0] ?? this.defaultTimeColumn(plan);
       if (!timeCol) return { outcome: "clarify", reason: "no time column", clarification: undefined };
     }
@@ -1215,8 +1282,8 @@ export class Composer {
       out[id] = a;
       const crit: Record<string, string> = {};
       for (const [k, p] of Object.entries(a.options)) crit[k] = pathOptionText(p, a.attribute);
-      crit.unclear = "The request does not say which one.";
-      R[id] = choice({ attribute: a.attribute, question: "In `request`, the `attribute` belongs to which related record?" }, crit);
+      crit.unclear = `The request does not say whose ${a.attribute} it is.`;
+      R[id] = choice({ attribute: a.attribute, question: "In `request`, whose `attribute` is meant? Choose the record the request ties it to (e.g. in 'visits by patients from the Boston clinic', the clinic is the patient's clinic)." }, crit);
     });
     return out;
   }
@@ -1270,19 +1337,26 @@ export class Composer {
     plan.includeEmptyGroups = flag("include_empty_groups") > 0.5;
     plan.distinct = plan.shape === "lookup" && flag("asks_unique") > 0.5 && plan.projections.length > 0;
 
+    const hasTimeDim = plan.dimensions.some((x) => x.kind === "time");
+    // a two-period comparison only exists without a time grain; inside a trend, "growth" is a derived change
+    const comparing = flag("compare_periods") > 0.5 && !!plan.timeWindow && plan.measures.length > 0 && !hasTimeDim;
+
     // derived calculations
-    const dv = argmax(dist(a1.derived));
-    if (dv && dv !== "none" && (dist(a1.derived)[dv] ?? 0) > 0.5) {
+    const pinnedDv = s.pins.derived;
+    const dv = pinnedDv ?? argmax(dist(a1.derived));
+    if (dv && dv !== "none" && (pinnedDv || (dist(a1.derived)[dv] ?? 0) > 0.5)) {
       const kind = dv as DerivedCalc;
       const needsTime = kind === "running_total" || kind === "change_vs_previous" || kind === "pct_change_vs_previous" || kind === "moving_average";
-      if (!needsTime || plan.dimensions.some((x) => x.kind === "time")) {
+      // implied by the ranking itself / by the period comparison
+      const redundant = (kind === "rank" && plan.shape === "ranking") || (comparing && (kind === "change_vs_previous" || kind === "pct_change_vs_previous"));
+      if (!redundant && (!needsTime || hasTimeDim)) {
         plan.derived = { kind, window: kind === "moving_average" ? count : undefined };
-        decide("derived", { about: "derived", value: kind, confidence: (a1.derived as ChoiceAnswer).confidence, answer: a1.derived, loadBearing: true, by: "oracle" });
+        decide("derived", { about: "derived", value: kind, confidence: pinnedDv ? 1 : (a1.derived as ChoiceAnswer).confidence, answer: a1.derived, loadBearing: true, by: pinnedDv ? "user" : "oracle" });
       }
     }
 
     // period comparison (§5.15): "YTD compared with the same period last year"
-    if (flag("compare_periods") > 0.5 && plan.timeWindow && plan.measures.length) {
+    if (comparing && plan.timeWindow) {
       const cur = plan.timeWindow.bounds;
       const prev = shiftYears(cur, -1, ts.timezone);
       const col = plan.timeWindow.column;
@@ -1362,6 +1436,9 @@ export class Composer {
 
   private defaultTimeColumn(plan: QueryPlan): string | undefined {
     const model = this.model;
+    // a duration measure is anchored at its start ("time to first response … last month": tickets opened last month)
+    const dur = plan.measures.find((m) => m.duration)?.duration;
+    if (dur) return dur.start;
     const measureTables = [...plan.measures.map((m) => m.table), ...(plan.having ? [plan.having.measure.table] : [])];
     const order = plan.shape === "lookup" && plan.subject ? [plan.subject, ...measureTables] : [...measureTables, ...(plan.subject ? [plan.subject] : [])];
     for (const t of order) {
@@ -1473,31 +1550,85 @@ export class Composer {
 
   // ==================================================================== gating & clarification
 
-  private gate(s: Session, provenance: Record<string, Decision>, plan: QueryPlan, narrative: string): (Partial<Result> & { outcome: Result["outcome"] }) | undefined {
-    const lb = Object.entries(provenance).filter(([, d]) => d.loadBearing && d.by === "oracle" && d.answer?.type === "choice");
+  /**
+   * Gating (spec §8.3): plan confidence is the minimum over *load-bearing* decisions — those
+   * that change the SQL. For each low-confidence choice, re-run decoding with every runner-up
+   * pinned (answers are memoized, so this costs no oracle calls); runner-ups that produce an
+   * equivalent plan pool their probability. Only genuinely different readings are asked about.
+   */
+  private async gate(s: Session, provenance: Record<string, Decision>, plan: QueryPlan, narrative: string): Promise<(Partial<Result> & { outcome: Result["outcome"] }) | undefined> {
+    if (s.probe) return undefined;
+    const threshold = this.settings.autoExecuteMinConfidence;
+    const lb = Object.entries(provenance).filter(([, d]) => d.loadBearing && d.by === "oracle" && d.answer?.type === "choice" && d.confidence < threshold);
     lb.sort((a, b) => a[1].confidence - b[1].confidence);
-    const worst = lb[0];
-    if (!worst || worst[1].confidence >= this.settings.autoExecuteMinConfidence) return undefined;
-    const [key, dcs] = worst;
-    const ans = dcs.answer as ChoiceAnswer;
-    const options = top(ans, 4).filter((o) => o.p >= Math.min(0.08, (top(ans, 1)[0]?.p ?? 0) * 0.5) && o.key !== "none" && o.key !== "unclear");
-    if (options.length < 2) return undefined;
-    const ts = this.timeSettings(s.ctx);
-    const render = (k: string) => {
-      if (dcs.about === "period") return { label: PERIOD_CRITERIA[k as PeriodKey] ?? k, consequence: periodBounds({ key: k as PeriodKey, n: plan.timeWindow?.period.n, start: plan.timeWindow?.period.start }, ts)?.label ?? "" };
-      if (dcs.about === "time_column") return { label: humanRef(this.model, k), consequence: `filter on ${k}` };
-      if (dcs.about === "measure") {
-        const [, kind, ref] = /^(col|count|dur|saved):(.+)$/.exec(k) ?? [];
-        if (kind === "col") return { label: capitalize(humanRef(this.model, ref)), consequence: this.model.tables[splitRef(ref)[0]]?.columns[splitRef(ref)[1]]?.description ?? ref };
-        if (kind === "count") return { label: `Number of ${this.model.tables[ref]?.humanName ?? ref}`, consequence: `Counts ${this.model.tables[ref]?.humanName ?? ref} rows` };
-        if (kind === "dur") return { label: `Time ${ref.replace(/^[^.]+\./, "").replace(">", " → ")}`, consequence: "Average/median of the difference between two timestamps" };
-        if (kind === "saved") return { label: `${capitalize(ref)} (saved definition)`, consequence: "Uses the accepted definition" };
-        return { label: k, consequence: "" };
+    const sig0 = planSignature(plan);
+    for (const [key, dcs] of lb) {
+      const ans = dcs.answer as ChoiceAnswer;
+      const pinKey = pinKeyFor(key, dcs);
+      if (!pinKey) continue;
+      const chosen = String(dcs.value);
+      const alts = top(ans, 5).filter((o) => o.key !== chosen && o.key !== "none" && o.key !== "unclear" && o.p >= 0.05);
+      // masked decoding (§1): readings that cannot compile (fan-out, unreachable) are illegal and
+      // drop out of the distribution; readings that compile to the same plan pool their mass
+      let pooled = dcs.confidence;
+      let illegal = 0;
+      const distinct: { key: string; p: number }[] = [{ key: chosen, p: dcs.confidence }];
+      for (const o of alts) {
+        const sig = await this.probe(s, pinKey, o.key);
+        if (sig === "illegal") illegal += o.p;
+        else if (sig !== undefined && sig === sig0) pooled += o.p;
+        else distinct.push(o);
       }
-      return { label: k, consequence: "" };
-    };
-    const pinKey = key.startsWith("path:") ? key : dcs.about === "measure" ? "measure" : key;
-    return this.clarify(s, pinKey, `I'm not sure about the ${dcs.about.replace(/_/g, " ")}. Did you mean:`, options.map((o) => ({ key: o.key, ...render(o.key) })), dcs.about);
+      pooled = pooled / Math.max(1e-9, 1 - illegal);
+      if (pooled >= threshold || distinct.length < 2) {
+        dcs.confidence = Math.max(dcs.confidence, Math.min(1, pooled));
+        continue;
+      }
+      return this.clarify(s, pinKey, `I'm not sure about the ${dcs.about.replace(/_/g, " ")}. Did you mean:`, distinct.slice(0, 4).map((o) => ({ key: o.key, ...this.renderOption(s, dcs.about, o.key, plan) })), dcs.about);
+    }
+    void narrative;
+    return undefined;
+  }
+
+  /** Content words of the request that appear nowhere in the schema vocabulary. */
+  private ungroundedTerms(request: string): string[] {
+    return [...new Set(contentTokens(request))].filter((t) => t.length > 2 && !TIME_WORDS.has(t) && !GENERIC_QUANTITY.has(t) && !this.vocab.has(stem(t)) && !this.vocab.has(t));
+  }
+
+  /** Decode again with one decision pinned; returns the resulting plan's signature. */
+  private async probe(s: Session, pinKey: string, value: string): Promise<string | undefined> {
+    const pins = { ...s.pins, [pinKey]: value };
+    delete pins.__pending;
+    const ps: Session = { ...s, id: newId("p"), pins, rounds: [], probe: true };
+    try {
+      const r = await this.run(ps);
+      if (r.outcome === "decline" && r.reason?.startsWith("illegal")) return "illegal";
+      return r.outcome === "execute" && r.plan ? planSignature(r.plan) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private renderOption(s: Session, about: string, k: string, plan: QueryPlan): { label: string; consequence: string } {
+    const ts = this.timeSettings(s.ctx);
+    if (about === "period") return { label: PERIOD_CRITERIA[k as PeriodKey] ?? k, consequence: periodBounds({ key: k as PeriodKey, n: plan.timeWindow?.period.n, start: plan.timeWindow?.period.start }, ts)?.label ?? "" };
+    if (about === "time_column") return { label: capitalize(humanRef(this.model, k)), consequence: `filter on ${k}` };
+    if (about === "shape") return { label: capitalize(k.replace(/_/g, " ")), consequence: SHAPE_CRITERIA[k] ?? "" };
+    if (about === "derived") return { label: k === "none" ? "No extra calculation" : capitalize(k.replace(/_/g, " ")), consequence: (DERIVED_CRITERIA as Record<string, string>)[k] ?? "" };
+    if (about === "span_role") {
+      const m = /^threshold:(col|sum|count|saved):(.+)$/.exec(k);
+      if (m?.[1] === "col" || m?.[1] === "sum") return { label: `${m[1] === "sum" ? "Total " : ""}${humanRef(this.model, m[2])}`, consequence: this.model.tables[splitRef(m[2])[0]]?.columns[splitRef(m[2])[1]]?.description ?? m[2] };
+      if (m?.[1] === "count") return { label: `Number of ${this.model.tables[m[2]]?.humanName ?? m[2]}`, consequence: "" };
+      return { label: k.replace(/_/g, " "), consequence: "" };
+    }
+    if (about === "measure") {
+      const [, kind, ref] = /^(col|count|dur|saved):(.+)$/.exec(k) ?? [];
+      if (kind === "col") return { label: capitalize(humanRef(this.model, ref)), consequence: this.model.tables[splitRef(ref)[0]]?.columns[splitRef(ref)[1]]?.description ?? ref };
+      if (kind === "count") return { label: `Number of ${this.model.tables[ref]?.humanName ?? ref}`, consequence: `Counts ${this.model.tables[ref]?.humanName ?? ref} rows` };
+      if (kind === "dur") return { label: `Time ${ref.replace(/^[^.]+\./, "").replace(">", " → ")}`, consequence: "Average/median of the difference between two timestamps" };
+      if (kind === "saved") return { label: `${capitalize(ref)} (saved definition)`, consequence: "Uses the accepted definition" };
+    }
+    return { label: k, consequence: "" };
   }
 
   private clarify(s: Session, pinKey: string, question: string, options: ClarifyOption[], decision?: string): Partial<Result> & { outcome: "clarify" } {
@@ -1569,6 +1700,69 @@ const TIME_WORDS = new Set(
 );
 
 const AGG_WORD: Record<Agg, string> = { sum: "total", avg: "average", median: "median", max: "maximum", min: "minimum", count_rows: "number of", count_distinct: "number of distinct" };
+
+/**
+ * What a plan returns, ignoring presentation (shape name, projections, aliases, labels,
+ * ordering): two decisions that give the same signature are not load-bearing.
+ */
+export function planSignature(p: QueryPlan): string {
+  const pred = (f: Predicate) => `${f.column}|${f.op}|${JSON.stringify(f.values)}`;
+  const meas = (m: Measure) => [m.kind, m.agg, m.table, m.column ?? "", m.duration ? `${m.duration.start}>${m.duration.end}` : "", (m.filters ?? []).map(pred).sort().join("&"), m.period ? `${m.period.bounds.start?.toISOString()}..${m.period.bounds.end?.toISOString()}` : ""].join("/");
+  const sig = {
+    m: p.measures.filter((m) => !m.hidden).map(meas).sort(),
+    d: p.dimensions.map((d) => `${d.kind}|${d.column ?? d.table}|${d.grain ?? ""}`).sort(),
+    f: p.filters.map(pred).sort(),
+    e: p.existence.map((e) => `${e.negated}|${e.table}|${e.filters.map(pred).sort().join("&")}|${e.timeWindow?.bounds.start?.toISOString()}`).sort(),
+    h: p.having ? `${meas(p.having.measure)}|${p.having.op}|${p.having.values.join(",")}` : "",
+    w: p.timeWindow ? `${p.timeWindow.column}|${p.timeWindow.bounds.start?.toISOString()}|${p.timeWindow.bounds.end?.toISOString()}` : "",
+    j: Object.entries(p.joinPaths).map(([k, v]) => `${k}=${v.join(">")}`).sort(),
+    g: p.perGroupLimit?.n ?? "",
+    o: p.distinctOn ? `${p.distinctOn.orderColumn}|${p.distinctOn.dir}` : "",
+    l: p.limit ?? "",
+    x: p.derived?.kind ?? "",
+    c: p.comparePeriods ? `${p.comparePeriods.column}|${p.comparePeriods.current.start?.toISOString()}` : "",
+    i: p.includeEmptyGroups,
+    s: p.softDelete?.table ?? "",
+    n: p.snapshotLatest?.table ?? "",
+  };
+  return JSON.stringify(sig);
+}
+
+/** The pin that overrides a decision when the user (or a probe) picks an option. */
+function pinKeyFor(key: string, d: Decision): string | undefined {
+  if (["shape", "measure_agg", "period", "subject", "time_column", "derived", "measure"].includes(key)) return key;
+  if (key.startsWith("path:")) return key;
+  if (key.startsWith("filter_")) return `filter:${key.slice(7)}`;
+  if (key.startsWith("role_")) return `role:${key.slice(5)}`;
+  void d;
+  return undefined;
+}
+
+/** Words a request may use for a quantity without naming a business term. */
+const GENERIC_QUANTITY = new Set(
+  ("value values amount amounts total totals sum spent spend spending cost costs price prices count counts number numbers units unit quantity " +
+    "average mean median growth change share rate size sold sell bought buy placed made led get got did come came have had many much most least " +
+    "fewest top bottom highest lowest best worst biggest smallest new recent latest first last each per show list give find which what").split(" "),
+);
+
+/** Stems of every name, description word, synonym and known value in the schema. */
+function schemaVocabulary(model: SchemaModel): Set<string> {
+  const v = new Set<string>([...Object.keys(MONTH_NAMES), ...Object.values(US_STATES).flatMap((x) => x.toLowerCase().split(" ")), ...Object.values(COUNTRIES).flatMap((x) => x.toLowerCase().split(" "))]);
+  const add = (text: string) => {
+    for (const t of contentTokens(text)) {
+      v.add(t);
+      v.add(stem(t));
+    }
+  };
+  for (const t of Object.values(model.tables)) {
+    add(`${t.name} ${t.humanName} ${t.noun} ${t.description} ${t.synonyms.join(" ")}`);
+    for (const c of Object.values(t.columns)) {
+      add(`${c.name.replace(/_/g, " ")} ${c.humanName} ${c.description} ${c.synonyms.join(" ")}`);
+      for (const val of c.values ?? []) if (val.length <= 40) add(val.replace(/_/g, " "));
+    }
+  }
+  return v;
+}
 
 function planConfidence(p: Record<string, Decision>): number {
   const lb = Object.values(p).filter((d) => d.loadBearing);

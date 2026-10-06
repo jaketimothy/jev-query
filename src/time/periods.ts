@@ -11,7 +11,7 @@ export const PERIOD_KEYS = [
 export type PeriodKey = (typeof PERIOD_KEYS)[number];
 
 export const PERIOD_CRITERIA: Record<PeriodKey, string> = {
-  none: "No time restriction.",
+  none: "No time restriction: all time, or the current state ('right now', 'currently', 'how much do we have').",
   today: "Today.",
   yesterday: "Yesterday.",
   this_week: "The current week so far ('this week').",
@@ -127,7 +127,7 @@ export function periodBounds(spec: PeriodSpec, ts: TimeSettings): Bounds | undef
   switch (spec.key) {
     case "none":
       return { label: "all time" };
-    case "today": [start, end] = [today, asOf]; break;
+    case "today": [start, end] = [today, mid(now.y, now.m, now.d + 1)]; break;
     case "yesterday": [start, end] = [mid(now.y, now.m, now.d - 1), today]; break;
     case "this_week": [start, end] = [thisWeek, asOf]; break;
     case "last_week": [start, end] = [mid(now.y, now.m, now.d - weekOffset - 7), thisWeek]; break;

@@ -97,6 +97,18 @@ interface Oracle {
 Write your own by implementing `ask()`; the composer only ever asks Choice, Score and Noul
 questions over options it enumerated itself.
 
+**Endpoints.** TypeSafe native: `JEV_URL=https://api.typesafe.ai/v1/systemone`, `JEV_MODEL=jev-latest`
+(or a pinned version). OpenRouter (default): `https://openrouter.ai/api/v1/systemone`, `typesafe/jev-1.13`.
+
+**Keeping the key out of files.** With the [1Password CLI](https://developer.1password.com/docs/cli/),
+`op run` resolves secret references into the child process's environment only and masks them in output:
+
+```bash
+JEV_API_KEY="op://Personal/Typesafe API/password" \
+JEV_URL="https://api.typesafe.ai/v1/systemone" JEV_MODEL="jev-latest" \
+op run -- npx jev-query eval --oracle jev --cache .jev-cache
+```
+
 ## The schema model: conventions → `composer.yaml` → saved queries
 
 **Introspection** reads the catalog only (`pg_attribute`, `pg_constraint`, `pg_enum`,
@@ -194,13 +206,24 @@ npm run eval                             # offline oracle
 npx jev-query eval --oracle jev --cache .jev-cache --explain    # real Jev, cached
 ```
 
-| Oracle | Result | What it shows |
+| Oracle | Result | Notes |
 |---|---|---|
-| `HeuristicOracle` | 60 / 61 | The code side (conventions, linking, joins, fan-out, compiler, gating) reaches the gold answer when decisions are sensible. **This oracle was tuned on these same cases, so the number says nothing about language understanding.** |
-| `JevOracle` | not yet run | The number that matters. Run it with a key; thresholds in `gating` are meant to be tuned on it. |
+| `JevOracle` (`jev-latest`, TypeSafe native API) | **58 / 61** | First run scored 41/61; four iterations of general code-side fixes (below) brought it to 58. Two wrong answers, one extra clarification. |
+| `HeuristicOracle` | 60 / 61 | Tuned on these same cases: shows the code side reaches gold given sensible decisions, says nothing about language understanding. |
 
-The one offline failure (E02, "amount paid") needs a business definition: amount paid means captured
-payments, which nothing in the schema says. Accept it once as a saved measure and it is reused after.
+Remaining Jev failures:
+
+- **B05** "Which products cost less than $20?": Jev splits list price 0.59 / unit cost 0.41, so it asks. Arguably the right behavior.
+- **D05** "phone tickets … each support agent created": Jev reads "support agent" as also filtering `title = 'Support Agent'`. A defensible reading the gold SQL doesn't take.
+- **E02** "amount paid": means captured payments, which nothing in the schema says. Accept it once as a saved measure and it is reused after.
+
+What moved the score from 41 to 58 (all general rules, documented in `docs/ARCHITECTURE.md`): gating only on
+decisions that change the plan (runner-ups are re-decoded and pooled when equivalent, dropped when illegal),
+unique alternate keys (`regions.code`) not offered as dimensions, the ranked entity always a dimension of a
+ranking, no `rank` column on rankings, no two-period comparison inside a trend, no single-bucket time grains,
+convention fallback for flat time-column distributions, and asking about business terms only when a word
+appears nowhere in the schema vocabulary. These were developed against this testbed, so the next honest
+check is an unseen schema (Pagila, Chinook, Northwind) with no `composer.yaml`.
 
 ## Building on it
 

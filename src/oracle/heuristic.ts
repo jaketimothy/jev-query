@@ -449,7 +449,8 @@ function numberRole(request: string, span: string, q: ChoiceQuestion): Answer {
         if (isMoney && /\bproducts?\b/.test(r) && /cost|price/.test(r) && col === "list_price_cents") s += 2;
         if (isMoney && /product sales|in sales|sales\b/.test(after) && col === "line_total_cents") s += 2.5;
         if (/^\s*units\b/.test(after) && col === "quantity") s += 4;
-        if (kind === "sum" && /^\s*(units|in (product )?sales|in revenue|worth)/.test(after)) s += 2;
+        if (kind === "sum") s -= 0.6; // row-level unless the phrasing is a per-group total
+        if (kind === "sum" && /^\s*(units|in (product )?sales|in revenue|worth)/.test(after)) s += 2.6;
         if (kind === "sum" && /\b(sold|sales|in total|total)\b/.test(r) && /\b(products?|categories|customers|brands?)\b/.test(r) && (/^\s*units/.test(after) || /in (product )?sales/.test(after))) s += 1.5;
         if (kind === "col" && /^\s*(units|in (product )?sales)/.test(after)) s -= 1;
         if (kind === "col" && /orders? (over|above|under|below|between|less|more)/.test(r) && tbl === "orders") s += 1;

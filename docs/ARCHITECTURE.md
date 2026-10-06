@@ -100,8 +100,21 @@ Deliberate deviations:
   ("delivered in August"), the status filter is dropped as redundant.
 - **Hierarchies.** Filters on a `parent_*` self-referencing table expand to the value's subtree via a
   recursive CTE (listed as v2 in the spec).
-- **Gating.** Default `auto_execute_min_confidence` is 0.6 (the spec's example uses 0.85), pending
-  tuning against a real Jev run.
+- **Gating (§8.3).** Default `auto_execute_min_confidence` is 0.6 (the spec's example uses 0.85). A
+  low-confidence choice only clarifies if it is load-bearing in fact: each runner-up is re-decoded with
+  that option pinned (answers are memoized, so no oracle calls). Runner-ups that yield the same plan
+  signature pool their probability; runner-ups that cannot compile (fan-out, unreachable) are masked out
+  and the rest renormalized. Only genuinely different, legal readings become clarification options.
+- **Business terms.** The R2 `measure_business_term` question is asked only when the request contains
+  a word that appears nowhere in the schema vocabulary (names, descriptions, synonyms, values, months,
+  places) and the measure was not taken from a saved definition; a "yes" asks once for the definition.
+- **Shape/dimension consistency.** A ranking always has its subject entity as a dimension; a ranking
+  ordered by recency is a lookup; a `rank` derived column is dropped on rankings; a time grain that would
+  produce one bucket of the window is dropped; a two-period comparison is not applied inside a trend;
+  unique alternate keys of tables with a display column are not offered as dimensions; when an entity and
+  one of its columns are both selected, the higher-probability one wins.
+- **Time column.** A flat distribution (top-two margin < 0.25) falls back to the convention default;
+  duration measures default to their start timestamp.
 - **Coverage after a user-defined measure.** If the user already chose the measure in a clarification,
   an uncovered business term ("revenue") is reported as a warning, not a second clarification.
 

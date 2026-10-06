@@ -106,7 +106,13 @@ function attributeFor(plan: QueryPlan, table: string, model: SchemaModel): strin
   const d = plan.dimensions.find((x) => x.table === table);
   if (d) return d.label;
   const f = plan.filters.find((x) => splitRef(x.column)[0] === table);
-  if (f) return model.tables[table]?.columns[splitRef(f.column)[1]]?.humanName ?? table;
+  if (f) {
+    const tm = model.tables[table];
+    const c = splitRef(f.column)[1];
+    // the display column of a table *is* the entity ("West" is a region, not a "name")
+    if (!tm) return table;
+    return tm.display.includes(c) ? tm.noun : `${tm.noun} ${tm.columns[c]?.humanName ?? c}`;
+  }
   return model.tables[table]?.noun ?? table;
 }
 
