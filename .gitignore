@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.testbed-db/
+testbed/seed.sql
+*.log
+eval-results*.jsonl
+.jev-cache/
+.scratch/
+.claude/settings.local.json

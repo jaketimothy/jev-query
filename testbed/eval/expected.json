@@ -1,0 +1,3800 @@
+{
+ "A01": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     589.0
+    ]
+   ]
+  }
+ ],
+ "A02": [
+  {
+   "columns": [
+    "order_number",
+    "placed_at",
+    "total"
+   ],
+   "rows": [
+    [
+     "NP-1012239",
+     "2026-10-04 19:34:23.355549+00",
+     2679.22
+    ],
+    [
+     "NP-1012236",
+     "2026-10-04 16:09:20.417838+00",
+     584.85
+    ],
+    [
+     "NP-1012234",
+     "2026-10-04 15:31:32.980846+00",
+     1159.55
+    ],
+    [
+     "NP-1012233",
+     "2026-10-04 15:29:15.55677+00",
+     653.25
+    ],
+    [
+     "NP-1012232",
+     "2026-10-04 13:55:23.439394+00",
+     599.47
+    ],
+    [
+     "NP-1012227",
+     "2026-10-04 06:29:43.578325+00",
+     1005.73
+    ],
+    [
+     "NP-1012226",
+     "2026-10-04 05:37:58.683609+00",
+     610.7
+    ],
+    [
+     "NP-1012224",
+     "2026-10-04 04:30:31.882895+00",
+     597.83
+    ],
+    [
+     "NP-1012222",
+     "2026-10-04 01:31:11.828665+00",
+     3908.15
+    ],
+    [
+     "NP-1012221",
+     "2026-10-03 22:12:43.19645+00",
+     1928.76
+    ],
+    [
+     "NP-1012220",
+     "2026-10-03 22:06:38.646177+00",
+     1152.13
+    ],
+    [
+     "NP-1012217",
+     "2026-10-03 16:24:58.817605+00",
+     641.21
+    ],
+    [
+     "NP-1012214",
+     "2026-10-03 13:01:26.661037+00",
+     1353.09
+    ],
+    [
+     "NP-1012213",
+     "2026-10-03 12:54:42.902189+00",
+     1366.79
+    ],
+    [
+     "NP-1012212",
+     "2026-10-03 12:37:17.307651+00",
+     629.26
+    ],
+    [
+     "NP-1012199",
+     "2026-10-02 18:01:05.299523+00",
+     1730.4
+    ],
+    [
+     "NP-1012197",
+     "2026-10-02 16:13:27.604462+00",
+     4669.24
+    ],
+    [
+     "NP-1012193",
+     "2026-10-02 08:31:07.383626+00",
+     527.03
+    ],
+    [
+     "NP-1012191",
+     "2026-10-02 05:43:30.941833+00",
+     1003.58
+    ],
+    [
+     "NP-1012190",
+     "2026-10-02 05:05:40.826705+00",
+     1289.63
+    ]
+   ]
+  }
+ ],
+ "A03": [
+  {
+   "columns": [
+    "channel",
+    "count"
+   ],
+   "rows": [
+    [
+     "marketplace",
+     584.0
+    ],
+    [
+     "phone",
+     623.0
+    ],
+    [
+     "web",
+     2608.0
+    ],
+    [
+     "mobile_app",
+     1156.0
+    ]
+   ]
+  }
+ ],
+ "A04": [
+  {
+   "columns": [
+    "month",
+    "count"
+   ],
+   "rows": [
+    [
+     "2025-01-01",
+     72.0
+    ],
+    [
+     "2025-02-01",
+     58.0
+    ],
+    [
+     "2025-03-01",
+     85.0
+    ],
+    [
+     "2025-04-01",
+     72.0
+    ],
+    [
+     "2025-05-01",
+     82.0
+    ],
+    [
+     "2025-06-01",
+     83.0
+    ],
+    [
+     "2025-07-01",
+     64.0
+    ],
+    [
+     "2025-08-01",
+     87.0
+    ],
+    [
+     "2025-09-01",
+     91.0
+    ],
+    [
+     "2025-10-01",
+     99.0
+    ],
+    [
+     "2025-11-01",
+     96.0
+    ],
+    [
+     "2025-12-01",
+     110.0
+    ]
+   ]
+  }
+ ],
+ "A05": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     3102.0
+    ]
+   ]
+  }
+ ],
+ "A06": [
+  {
+   "columns": [
+    "segment",
+    "round"
+   ],
+   "rows": [
+    [
+     "enterprise",
+     1096.23
+    ],
+    [
+     "consumer",
+     551.82
+    ],
+    [
+     "small_business",
+     1110.32
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "segment",
+    "round"
+   ],
+   "rows": [
+    [
+     "enterprise",
+     1041.76
+    ],
+    [
+     "consumer",
+     526.59
+    ],
+    [
+     "small_business",
+     1055.05
+    ]
+   ]
+  }
+ ],
+ "B01": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     94.0
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     97.0
+    ]
+   ]
+  }
+ ],
+ "B02": [
+  {
+   "columns": [
+    "round"
+   ],
+   "rows": [
+    [
+     1172566.13
+    ]
+   ]
+  }
+ ],
+ "B03": [
+  {
+   "columns": [
+    "id",
+    "first_name",
+    "last_name",
+    "email"
+   ],
+   "rows": [
+    [
+     115.0,
+     "Caleb",
+     "Evans",
+     "caleb.evans115@example.com"
+    ],
+    [
+     757.0,
+     "Wyatt",
+     "White",
+     "wyatt.white757@example.com"
+    ],
+    [
+     944.0,
+     "Ethan",
+     "Mitchell",
+     "ethan.mitchell944@example.com"
+    ],
+    [
+     1341.0,
+     "Ruby",
+     "Campbell",
+     "ruby.campbell1341@example.com"
+    ],
+    [
+     1880.0,
+     "Felix",
+     "Mitchell",
+     "felix.mitchell1880@example.com"
+    ]
+   ]
+  }
+ ],
+ "B04": [
+  {
+   "columns": [
+    "order_number"
+   ],
+   "rows": [
+    [
+     "NP-1011582"
+    ],
+    [
+     "NP-1011584"
+    ],
+    [
+     "NP-1011587"
+    ],
+    [
+     "NP-1011592"
+    ],
+    [
+     "NP-1011602"
+    ],
+    [
+     "NP-1011608"
+    ],
+    [
+     "NP-1011613"
+    ],
+    [
+     "NP-1011620"
+    ],
+    [
+     "NP-1011621"
+    ],
+    [
+     "NP-1011624"
+    ],
+    [
+     "NP-1011632"
+    ],
+    [
+     "NP-1011635"
+    ],
+    [
+     "NP-1011646"
+    ],
+    [
+     "NP-1011649"
+    ],
+    [
+     "NP-1011652"
+    ],
+    [
+     "NP-1011653"
+    ],
+    [
+     "NP-1011657"
+    ],
+    [
+     "NP-1011660"
+    ],
+    [
+     "NP-1011662"
+    ],
+    [
+     "NP-1011664"
+    ],
+    [
+     "NP-1011665"
+    ],
+    [
+     "NP-1011669"
+    ],
+    [
+     "NP-1011671"
+    ],
+    [
+     "NP-1011672"
+    ],
+    [
+     "NP-1011673"
+    ],
+    [
+     "NP-1011675"
+    ],
+    [
+     "NP-1011678"
+    ],
+    [
+     "NP-1011683"
+    ],
+    [
+     "NP-1011695"
+    ],
+    [
+     "NP-1011697"
+    ],
+    [
+     "NP-1011700"
+    ],
+    [
+     "NP-1011701"
+    ],
+    [
+     "NP-1011702"
+    ],
+    [
+     "NP-1011706"
+    ],
+    [
+     "NP-1011708"
+    ],
+    [
+     "NP-1011710"
+    ],
+    [
+     "NP-1011712"
+    ],
+    [
+     "NP-1011716"
+    ],
+    [
+     "NP-1011717"
+    ],
+    [
+     "NP-1011722"
+    ],
+    [
+     "NP-1011726"
+    ],
+    [
+     "NP-1011727"
+    ],
+    [
+     "NP-1011730"
+    ],
+    [
+     "NP-1011732"
+    ],
+    [
+     "NP-1011733"
+    ],
+    [
+     "NP-1011735"
+    ],
+    [
+     "NP-1011737"
+    ],
+    [
+     "NP-1011741"
+    ],
+    [
+     "NP-1011746"
+    ],
+    [
+     "NP-1011753"
+    ],
+    [
+     "NP-1011757"
+    ],
+    [
+     "NP-1011762"
+    ],
+    [
+     "NP-1011763"
+    ],
+    [
+     "NP-1011766"
+    ],
+    [
+     "NP-1011768"
+    ],
+    [
+     "NP-1011773"
+    ],
+    [
+     "NP-1011774"
+    ],
+    [
+     "NP-1011775"
+    ],
+    [
+     "NP-1011776"
+    ],
+    [
+     "NP-1011779"
+    ],
+    [
+     "NP-1011795"
+    ],
+    [
+     "NP-1011801"
+    ],
+    [
+     "NP-1011804"
+    ],
+    [
+     "NP-1011810"
+    ],
+    [
+     "NP-1011814"
+    ],
+    [
+     "NP-1011825"
+    ],
+    [
+     "NP-1011826"
+    ],
+    [
+     "NP-1011828"
+    ],
+    [
+     "NP-1011829"
+    ],
+    [
+     "NP-1011830"
+    ],
+    [
+     "NP-1011833"
+    ],
+    [
+     "NP-1011835"
+    ],
+    [
+     "NP-1011838"
+    ],
+    [
+     "NP-1011840"
+    ],
+    [
+     "NP-1011845"
+    ],
+    [
+     "NP-1011847"
+    ],
+    [
+     "NP-1011850"
+    ],
+    [
+     "NP-1011856"
+    ],
+    [
+     "NP-1011872"
+    ],
+    [
+     "NP-1011873"
+    ],
+    [
+     "NP-1011875"
+    ],
+    [
+     "NP-1011876"
+    ],
+    [
+     "NP-1011877"
+    ],
+    [
+     "NP-1011880"
+    ],
+    [
+     "NP-1011882"
+    ],
+    [
+     "NP-1011883"
+    ],
+    [
+     "NP-1011886"
+    ],
+    [
+     "NP-1011887"
+    ],
+    [
+     "NP-1011889"
+    ],
+    [
+     "NP-1011891"
+    ],
+    [
+     "NP-1011893"
+    ],
+    [
+     "NP-1011895"
+    ],
+    [
+     "NP-1011896"
+    ],
+    [
+     "NP-1011900"
+    ],
+    [
+     "NP-1011901"
+    ],
+    [
+     "NP-1011918"
+    ],
+    [
+     "NP-1011919"
+    ],
+    [
+     "NP-1011923"
+    ],
+    [
+     "NP-1011924"
+    ],
+    [
+     "NP-1011929"
+    ],
+    [
+     "NP-1011934"
+    ],
+    [
+     "NP-1011936"
+    ],
+    [
+     "NP-1011939"
+    ],
+    [
+     "NP-1011946"
+    ],
+    [
+     "NP-1011951"
+    ],
+    [
+     "NP-1011964"
+    ],
+    [
+     "NP-1011968"
+    ],
+    [
+     "NP-1011977"
+    ],
+    [
+     "NP-1011980"
+    ],
+    [
+     "NP-1011987"
+    ],
+    [
+     "NP-1011988"
+    ],
+    [
+     "NP-1011994"
+    ],
+    [
+     "NP-1011997"
+    ],
+    [
+     "NP-1012003"
+    ],
+    [
+     "NP-1012009"
+    ],
+    [
+     "NP-1012012"
+    ],
+    [
+     "NP-1012014"
+    ],
+    [
+     "NP-1012023"
+    ],
+    [
+     "NP-1012027"
+    ],
+    [
+     "NP-1012028"
+    ],
+    [
+     "NP-1012029"
+    ],
+    [
+     "NP-1012030"
+    ],
+    [
+     "NP-1012037"
+    ],
+    [
+     "NP-1012042"
+    ],
+    [
+     "NP-1012043"
+    ],
+    [
+     "NP-1012046"
+    ],
+    [
+     "NP-1012047"
+    ],
+    [
+     "NP-1012051"
+    ],
+    [
+     "NP-1012059"
+    ],
+    [
+     "NP-1012062"
+    ],
+    [
+     "NP-1012066"
+    ],
+    [
+     "NP-1012068"
+    ],
+    [
+     "NP-1012072"
+    ],
+    [
+     "NP-1012074"
+    ],
+    [
+     "NP-1012076"
+    ],
+    [
+     "NP-1012082"
+    ],
+    [
+     "NP-1012083"
+    ],
+    [
+     "NP-1012088"
+    ],
+    [
+     "NP-1012091"
+    ],
+    [
+     "NP-1012094"
+    ],
+    [
+     "NP-1012100"
+    ],
+    [
+     "NP-1012101"
+    ],
+    [
+     "NP-1012102"
+    ],
+    [
+     "NP-1012104"
+    ],
+    [
+     "NP-1012111"
+    ],
+    [
+     "NP-1012119"
+    ],
+    [
+     "NP-1012129"
+    ],
+    [
+     "NP-1012132"
+    ],
+    [
+     "NP-1012133"
+    ],
+    [
+     "NP-1012137"
+    ],
+    [
+     "NP-1012138"
+    ],
+    [
+     "NP-1012140"
+    ],
+    [
+     "NP-1012144"
+    ],
+    [
+     "NP-1012145"
+    ],
+    [
+     "NP-1012148"
+    ],
+    [
+     "NP-1012149"
+    ]
+   ]
+  }
+ ],
+ "B05": [
+  {
+   "columns": [
+    "sku",
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "NP-10049",
+     "Alder & Co Trail 10L Dry Bag",
+     19.99
+    ],
+    [
+     "NP-10336",
+     "Ridgeway Mesa 5L Dry Bag",
+     17.99
+    ],
+    [
+     "NP-10385",
+     "Northpine Ridge Cook Set",
+     19.99
+    ],
+    [
+     "NP-10637",
+     "Alder & Co Juniper Glove Liner",
+     16.99
+    ],
+    [
+     "NP-10742",
+     "Northpine Aspen 20L Dry Bag",
+     18.99
+    ],
+    [
+     "NP-11484",
+     "Northpine Aspen 10L Dry Bag",
+     18.99
+    ],
+    [
+     "NP-12401",
+     "Coyote Granite Glove Liner",
+     15.99
+    ]
+   ]
+  }
+ ],
+ "B06": [
+  {
+   "columns": [
+    "id",
+    "company_name"
+   ],
+   "rows": [
+    [
+     38.0,
+     "Granite Adventures"
+    ],
+    [
+     84.0,
+     "Granite Supply Co"
+    ],
+    [
+     113.0,
+     "Granite Guides"
+    ],
+    [
+     140.0,
+     "Granite Guides"
+    ],
+    [
+     149.0,
+     "Granite Expeditions"
+    ],
+    [
+     340.0,
+     "Granite Adventures"
+    ],
+    [
+     413.0,
+     "Granite Scouts"
+    ],
+    [
+     484.0,
+     "Granite Supply Co"
+    ],
+    [
+     746.0,
+     "Granite Scouts"
+    ],
+    [
+     816.0,
+     "Granite Expeditions"
+    ],
+    [
+     914.0,
+     "Granite Supply Co"
+    ],
+    [
+     935.0,
+     "Granite Supply Co"
+    ],
+    [
+     936.0,
+     "Granite Scouts"
+    ],
+    [
+     971.0,
+     "Granite Scouts"
+    ],
+    [
+     1116.0,
+     "Granite Scouts"
+    ],
+    [
+     1149.0,
+     "Granite Rentals"
+    ],
+    [
+     1228.0,
+     "Granite Expeditions"
+    ],
+    [
+     1387.0,
+     "Granite Outfitters"
+    ],
+    [
+     1436.0,
+     "Granite Expeditions"
+    ],
+    [
+     1475.0,
+     "Granite Guides"
+    ],
+    [
+     1625.0,
+     "Granite Expeditions"
+    ],
+    [
+     1629.0,
+     "Granite Expeditions"
+    ],
+    [
+     1716.0,
+     "Granite Outfitters"
+    ],
+    [
+     1717.0,
+     "Granite Scouts"
+    ],
+    [
+     1815.0,
+     "Granite Guides"
+    ],
+    [
+     1849.0,
+     "Granite Adventures"
+    ],
+    [
+     1895.0,
+     "Granite Guides"
+    ],
+    [
+     2008.0,
+     "Granite Supply Co"
+    ],
+    [
+     2231.0,
+     "Granite Guides"
+    ],
+    [
+     2288.0,
+     "Granite Scouts"
+    ],
+    [
+     2340.0,
+     "Granite Rentals"
+    ],
+    [
+     2445.0,
+     "Granite Rentals"
+    ],
+    [
+     2489.0,
+     "Granite Scouts"
+    ],
+    [
+     2524.0,
+     "Granite Outfitters"
+    ],
+    [
+     2585.0,
+     "Granite Expeditions"
+    ],
+    [
+     2610.0,
+     "Granite Adventures"
+    ],
+    [
+     2673.0,
+     "Granite Expeditions"
+    ],
+    [
+     2791.0,
+     "Granite Expeditions"
+    ],
+    [
+     2943.0,
+     "Granite Outfitters"
+    ],
+    [
+     3004.0,
+     "Granite Adventures"
+    ],
+    [
+     3157.0,
+     "Granite Adventures"
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "id",
+    "company_name"
+   ],
+   "rows": [
+    [
+     38.0,
+     "Granite Adventures"
+    ],
+    [
+     84.0,
+     "Granite Supply Co"
+    ],
+    [
+     113.0,
+     "Granite Guides"
+    ],
+    [
+     140.0,
+     "Granite Guides"
+    ],
+    [
+     149.0,
+     "Granite Expeditions"
+    ],
+    [
+     340.0,
+     "Granite Adventures"
+    ],
+    [
+     413.0,
+     "Granite Scouts"
+    ],
+    [
+     484.0,
+     "Granite Supply Co"
+    ],
+    [
+     746.0,
+     "Granite Scouts"
+    ],
+    [
+     816.0,
+     "Granite Expeditions"
+    ],
+    [
+     914.0,
+     "Granite Supply Co"
+    ],
+    [
+     935.0,
+     "Granite Supply Co"
+    ],
+    [
+     936.0,
+     "Granite Scouts"
+    ],
+    [
+     971.0,
+     "Granite Scouts"
+    ],
+    [
+     1116.0,
+     "Granite Scouts"
+    ],
+    [
+     1149.0,
+     "Granite Rentals"
+    ],
+    [
+     1228.0,
+     "Granite Expeditions"
+    ],
+    [
+     1387.0,
+     "Granite Outfitters"
+    ],
+    [
+     1436.0,
+     "Granite Expeditions"
+    ],
+    [
+     1475.0,
+     "Granite Guides"
+    ],
+    [
+     1625.0,
+     "Granite Expeditions"
+    ],
+    [
+     1629.0,
+     "Granite Expeditions"
+    ],
+    [
+     1716.0,
+     "Granite Outfitters"
+    ],
+    [
+     1717.0,
+     "Granite Scouts"
+    ],
+    [
+     1815.0,
+     "Granite Guides"
+    ],
+    [
+     1849.0,
+     "Granite Adventures"
+    ],
+    [
+     1895.0,
+     "Granite Guides"
+    ],
+    [
+     2008.0,
+     "Granite Supply Co"
+    ],
+    [
+     2231.0,
+     "Granite Guides"
+    ],
+    [
+     2288.0,
+     "Granite Scouts"
+    ],
+    [
+     2340.0,
+     "Granite Rentals"
+    ],
+    [
+     2445.0,
+     "Granite Rentals"
+    ],
+    [
+     2489.0,
+     "Granite Scouts"
+    ],
+    [
+     2524.0,
+     "Granite Outfitters"
+    ],
+    [
+     2585.0,
+     "Granite Expeditions"
+    ],
+    [
+     2610.0,
+     "Granite Adventures"
+    ],
+    [
+     2673.0,
+     "Granite Expeditions"
+    ],
+    [
+     2791.0,
+     "Granite Expeditions"
+    ],
+    [
+     2943.0,
+     "Granite Outfitters"
+    ],
+    [
+     3004.0,
+     "Granite Adventures"
+    ],
+    [
+     3157.0,
+     "Granite Adventures"
+    ]
+   ]
+  }
+ ],
+ "B07": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     2.0
+    ]
+   ]
+  }
+ ],
+ "B08": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     1391.0
+    ]
+   ]
+  }
+ ],
+ "B09": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     31.0
+    ]
+   ]
+  }
+ ],
+ "B10": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     501.0
+    ]
+   ]
+  }
+ ],
+ "C01": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     2093.0
+    ]
+   ]
+  }
+ ],
+ "C02": [
+  {
+   "columns": [
+    "week",
+    "count"
+   ],
+   "rows": [
+    [
+     "2026-08-10",
+     154.0
+    ],
+    [
+     "2026-08-17",
+     148.0
+    ],
+    [
+     "2026-08-24",
+     207.0
+    ],
+    [
+     "2026-08-31",
+     161.0
+    ],
+    [
+     "2026-09-07",
+     131.0
+    ],
+    [
+     "2026-09-14",
+     136.0
+    ],
+    [
+     "2026-09-21",
+     138.0
+    ],
+    [
+     "2026-09-28",
+     135.0
+    ]
+   ]
+  }
+ ],
+ "C03": [
+  {
+   "columns": [
+    "this_year",
+    "last_year"
+   ],
+   "rows": [
+    [
+     3669309.11,
+     2125324.53
+    ]
+   ]
+  }
+ ],
+ "C04": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     678.0
+    ]
+   ]
+  }
+ ],
+ "C05": [
+  {
+   "columns": [
+    "priority",
+    "avg"
+   ],
+   "rows": [
+    [
+     "urgent",
+     3238.0
+    ],
+    [
+     "normal",
+     13914.0
+    ],
+    [
+     "low",
+     20418.0
+    ],
+    [
+     "high",
+     8031.0
+    ]
+   ]
+  }
+ ],
+ "D01": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "South",
+     78296.63
+    ],
+    [
+     "West",
+     134461.79
+    ],
+    [
+     "East",
+     103302.22
+    ],
+    [
+     "Central",
+     119389.79
+    ]
+   ]
+  }
+ ],
+ "D02": [],
+ "D03": [
+  {
+   "columns": [
+    "name",
+    "count"
+   ],
+   "rows": [
+    [
+     "South",
+     0.0
+    ],
+    [
+     "West",
+     710.0
+    ],
+    [
+     "East",
+     509.0
+    ],
+    [
+     "Central",
+     797.0
+    ]
+   ]
+  }
+ ],
+ "D04": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     2.0
+    ]
+   ]
+  }
+ ],
+ "D05": [
+  {
+   "columns": [
+    "full_name",
+    "count"
+   ],
+   "rows": [
+    [
+     "Maya Anderson",
+     22.0
+    ],
+    [
+     "Ivy Hall",
+     17.0
+    ],
+    [
+     "Isaac Moore",
+     18.0
+    ],
+    [
+     "Leah Anderson",
+     15.0
+    ],
+    [
+     "Leah Wright",
+     16.0
+    ],
+    [
+     "Theo Hall",
+     17.0
+    ],
+    [
+     "Elias Campbell",
+     16.0
+    ],
+    [
+     "Jack Nelson",
+     14.0
+    ],
+    [
+     "Nora Kim",
+     22.0
+    ],
+    [
+     "Elias Chen",
+     10.0
+    ],
+    [
+     "Caleb Clark",
+     19.0
+    ],
+    [
+     "Felix Martinez",
+     18.0
+    ],
+    [
+     "Dana Whitaker",
+     13.0
+    ],
+    [
+     "Levi Thomas",
+     17.0
+    ],
+    [
+     "Jonah Baker",
+     24.0
+    ],
+    [
+     "Priya Smith",
+     17.0
+    ],
+    [
+     "Miles Wilson",
+     21.0
+    ],
+    [
+     "Jonah Walker",
+     14.0
+    ],
+    [
+     "Sofia Campbell",
+     16.0
+    ]
+   ]
+  }
+ ],
+ "D06": [
+  {
+   "columns": [
+    "landing_page",
+    "count"
+   ],
+   "rows": [
+    [
+     "/camping",
+     51.0
+    ],
+    [
+     "/",
+     44.0
+    ],
+    [
+     "/footwear",
+     41.0
+    ],
+    [
+     "/new",
+     39.0
+    ],
+    [
+     "/blog/trail-guides",
+     33.0
+    ],
+    [
+     "/water",
+     33.0
+    ],
+    [
+     "/climbing",
+     30.0
+    ],
+    [
+     "/apparel",
+     28.0
+    ],
+    [
+     "/packs",
+     25.0
+    ],
+    [
+     "/sale",
+     24.0
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "landing_page",
+    "count"
+   ],
+   "rows": [
+    [
+     "/camping",
+     51.0
+    ],
+    [
+     "/",
+     45.0
+    ],
+    [
+     "/footwear",
+     41.0
+    ],
+    [
+     "/new",
+     39.0
+    ],
+    [
+     "/blog/trail-guides",
+     33.0
+    ],
+    [
+     "/water",
+     33.0
+    ],
+    [
+     "/climbing",
+     30.0
+    ],
+    [
+     "/apparel",
+     28.0
+    ],
+    [
+     "/packs",
+     25.0
+    ],
+    [
+     "/sale",
+     24.0
+    ]
+   ]
+  }
+ ],
+ "D07": [
+  {
+   "columns": [
+    "sku",
+    "name",
+    "sum"
+   ],
+   "rows": [
+    [
+     "NP-11043",
+     "Alder & Co Juniper Trail Runner",
+     54.0
+    ],
+    [
+     "NP-10336",
+     "Ridgeway Mesa 5L Dry Bag",
+     459.0
+    ],
+    [
+     "NP-11113",
+     "Summit Ridge Shelter",
+     78.0
+    ],
+    [
+     "NP-10756",
+     "Basalt Granite Mitts",
+     53.0
+    ],
+    [
+     "NP-11414",
+     "Alder & Co Glacier Water Filter",
+     69.0
+    ],
+    [
+     "NP-12268",
+     "Ridgeway Ridge Sandal",
+     74.0
+    ],
+    [
+     "NP-12065",
+     "Ridgeway Juniper Merino Top",
+     298.0
+    ],
+    [
+     "NP-11169",
+     "Ridgeway Tundra 24L Daypack",
+     116.0
+    ],
+    [
+     "NP-11106",
+     "Basalt Tundra Trail Runner",
+     60.0
+    ],
+    [
+     "NP-11736",
+     "Basalt Ridge 10L Dry Bag",
+     53.0
+    ]
+   ]
+  }
+ ],
+ "D08": [
+  {
+   "columns": [
+    "segment",
+    "count"
+   ],
+   "rows": [
+    [
+     "enterprise",
+     1032.0
+    ],
+    [
+     "consumer",
+     10121.0
+    ],
+    [
+     "small_business",
+     2264.0
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "segment",
+    "count"
+   ],
+   "rows": [
+    [
+     null,
+     28961.0
+    ],
+    [
+     "enterprise",
+     1032.0
+    ],
+    [
+     "consumer",
+     10121.0
+    ],
+    [
+     "small_business",
+     2264.0
+    ]
+   ]
+  }
+ ],
+ "E01": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "Sandals",
+     22510.18
+    ],
+    [
+     "Kayaks",
+     73062.6
+    ],
+    [
+     "Hats & Gloves",
+     19199.34
+    ],
+    [
+     "Daypacks",
+     28320.19
+    ],
+    [
+     "Camp Kitchen",
+     49633.81
+    ],
+    [
+     "Paddles",
+     2036.2
+    ],
+    [
+     "Trail Runners",
+     70442.87
+    ],
+    [
+     "Sleeping Bags",
+     117342.85
+    ],
+    [
+     "Backpacking Packs",
+     193042.34
+    ],
+    [
+     "Jackets",
+     197495.75
+    ],
+    [
+     "Dry Bags",
+     26431.78
+    ],
+    [
+     "Ropes",
+     67187.84
+    ],
+    [
+     "Hiking Boots",
+     49969.77
+    ],
+    [
+     "Harnesses",
+     27911.95
+    ],
+    [
+     "Base Layers",
+     42805.28
+    ],
+    [
+     "Tents",
+     317242.14
+    ],
+    [
+     "Climbing Shoes",
+     116848.73
+    ],
+    [
+     "Lighting",
+     16842.28
+    ]
+   ]
+  }
+ ],
+ "E02": [
+  {
+   "columns": [
+    "m",
+    "units",
+    "paid"
+   ],
+   "rows": [
+    [
+     "2026-01-01",
+     1476.0,
+     248401.21
+    ],
+    [
+     "2026-02-01",
+     1174.0,
+     213567.72
+    ],
+    [
+     "2026-03-01",
+     1931.0,
+     341425.56
+    ],
+    [
+     "2026-04-01",
+     2073.0,
+     350139.62
+    ],
+    [
+     "2026-05-01",
+     2437.0,
+     422569.69
+    ],
+    [
+     "2026-06-01",
+     2456.0,
+     440753.6
+    ],
+    [
+     "2026-07-01",
+     3100.0,
+     540294.69
+    ],
+    [
+     "2026-08-01",
+     2838.0,
+     496256.08
+    ],
+    [
+     "2026-09-01",
+     2529.0,
+     411728.29
+    ],
+    [
+     "2026-10-01",
+     278.0,
+     45259.67
+    ]
+   ]
+  }
+ ],
+ "E03": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     509.0
+    ]
+   ]
+  }
+ ],
+ "E04": [
+  {
+   "columns": [
+    "brand",
+    "round"
+   ],
+   "rows": [
+    [
+     "Lumen",
+     4.11
+    ],
+    [
+     "Strata",
+     3.61
+    ],
+    [
+     "Ridgeway",
+     3.66
+    ],
+    [
+     "Coyote",
+     4.06
+    ],
+    [
+     "Haven",
+     3.8
+    ],
+    [
+     "Basalt",
+     3.88
+    ],
+    [
+     "Kestrel",
+     3.92
+    ],
+    [
+     "Northpine",
+     3.73
+    ],
+    [
+     "Summit",
+     3.84
+    ],
+    [
+     "Fjell",
+     3.6
+    ],
+    [
+     "Alder & Co",
+     3.85
+    ],
+    [
+     "Torrent",
+     3.68
+    ]
+   ]
+  }
+ ],
+ "E05": [
+  {
+   "columns": [
+    "sum"
+   ],
+   "rows": [
+    [
+     217950.0
+    ]
+   ]
+  }
+ ],
+ "E06": [
+  {
+   "columns": [
+    "snapshot_date",
+    "name",
+    "sum"
+   ],
+   "rows": [
+    [
+     "2026-02-01",
+     "Allentown DC",
+     66651.0
+    ],
+    [
+     "2026-10-01",
+     "Allentown DC",
+     70224.0
+    ],
+    [
+     "2026-09-01",
+     "Allentown DC",
+     69079.0
+    ],
+    [
+     "2026-08-01",
+     "Allentown DC",
+     69293.0
+    ],
+    [
+     "2026-08-01",
+     "Columbus DC",
+     71788.0
+    ],
+    [
+     "2026-08-01",
+     "Reno DC",
+     73003.0
+    ],
+    [
+     "2026-01-01",
+     "Columbus DC",
+     68556.0
+    ],
+    [
+     "2026-05-01",
+     "Columbus DC",
+     70407.0
+    ],
+    [
+     "2026-07-01",
+     "Reno DC",
+     72849.0
+    ],
+    [
+     "2026-09-01",
+     "Reno DC",
+     73014.0
+    ],
+    [
+     "2026-04-01",
+     "Reno DC",
+     71270.0
+    ],
+    [
+     "2026-03-01",
+     "Allentown DC",
+     67425.0
+    ],
+    [
+     "2026-06-01",
+     "Columbus DC",
+     70706.0
+    ],
+    [
+     "2026-03-01",
+     "Columbus DC",
+     69265.0
+    ],
+    [
+     "2026-03-01",
+     "Reno DC",
+     70410.0
+    ],
+    [
+     "2026-06-01",
+     "Allentown DC",
+     68897.0
+    ],
+    [
+     "2026-09-01",
+     "Columbus DC",
+     72820.0
+    ],
+    [
+     "2026-01-01",
+     "Reno DC",
+     69002.0
+    ],
+    [
+     "2026-07-01",
+     "Allentown DC",
+     69011.0
+    ],
+    [
+     "2026-04-01",
+     "Allentown DC",
+     68341.0
+    ],
+    [
+     "2026-05-01",
+     "Reno DC",
+     72322.0
+    ],
+    [
+     "2026-10-01",
+     "Columbus DC",
+     73637.0
+    ],
+    [
+     "2026-04-01",
+     "Columbus DC",
+     69936.0
+    ],
+    [
+     "2026-05-01",
+     "Allentown DC",
+     68429.0
+    ],
+    [
+     "2026-02-01",
+     "Columbus DC",
+     68671.0
+    ],
+    [
+     "2026-02-01",
+     "Reno DC",
+     69554.0
+    ],
+    [
+     "2026-06-01",
+     "Reno DC",
+     72761.0
+    ],
+    [
+     "2026-10-01",
+     "Reno DC",
+     74089.0
+    ],
+    [
+     "2026-01-01",
+     "Allentown DC",
+     66310.0
+    ],
+    [
+     "2026-07-01",
+     "Columbus DC",
+     70526.0
+    ]
+   ]
+  }
+ ],
+ "E07": [],
+ "F01": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     940.0
+    ]
+   ]
+  }
+ ],
+ "F02": [
+  {
+   "columns": [
+    "sku",
+    "name"
+   ],
+   "rows": [
+    [
+     "NP-11995",
+     "Kestrel Canyon Trail Runner"
+    ],
+    [
+     "NP-10833",
+     "Torrent Trail Fleece"
+    ],
+    [
+     "NP-12149",
+     "Ridgeway Alpine Winter Boot"
+    ],
+    [
+     "NP-11246",
+     "Alder & Co Juniper Trail Runner GTX"
+    ],
+    [
+     "NP-10462",
+     "Ridgeway Cascade Trail Runner GTX"
+    ],
+    [
+     "NP-12016",
+     "Ridgeway Mesa Down Jacket II"
+    ],
+    [
+     "NP-10084",
+     "Northpine Mesa 30L Daypack"
+    ],
+    [
+     "NP-10070",
+     "Basalt Ridge Water Shoe"
+    ],
+    [
+     "NP-11386",
+     "Lumen Juniper Merino Bottom"
+    ],
+    [
+     "NP-10728",
+     "Haven Juniper Kids Harness"
+    ],
+    [
+     "NP-10714",
+     "Strata Ridge Kayak Paddle"
+    ],
+    [
+     "NP-12198",
+     "Northpine Canyon 18L Daypack II"
+    ],
+    [
+     "NP-10322",
+     "Northpine Trail Softshell"
+    ],
+    [
+     "NP-10581",
+     "Lumen Ridge Synthetic Crew"
+    ],
+    [
+     "NP-10105",
+     "Kestrel Juniper Climbing Shoe"
+    ],
+    [
+     "NP-10392",
+     "Coyote Glacier Trail Runner"
+    ],
+    [
+     "NP-11827",
+     "Haven Glacier Mid Boot"
+    ],
+    [
+     "NP-12331",
+     "Torrent Sierra Sandal"
+    ],
+    [
+     "NP-10147",
+     "Strata Ridge Rain Jacket"
+    ],
+    [
+     "NP-10035",
+     "Kestrel Cascade Approach Shoe"
+    ],
+    [
+     "NP-12380",
+     "Fjell Granite Approach Shoe"
+    ],
+    [
+     "NP-10784",
+     "Summit Glacier 0F Sleeping Bag"
+    ],
+    [
+     "NP-10672",
+     "Coyote Aspen Shelter"
+    ],
+    [
+     "NP-10749",
+     "Strata Sierra Trail Runner GTX"
+    ],
+    [
+     "NP-11365",
+     "Strata Mesa Hiking Boot"
+    ],
+    [
+     "NP-11253",
+     "Kestrel Alpine Merino Top"
+    ],
+    [
+     "NP-10196",
+     "Summit Alpine Sandal"
+    ],
+    [
+     "NP-11134",
+     "Northpine Mesa 9.8mm Rope"
+    ],
+    [
+     "NP-10889",
+     "Ridgeway Granite Kayak Paddle"
+    ],
+    [
+     "NP-11295",
+     "Northpine Granite Hiking Boot II"
+    ],
+    [
+     "NP-11883",
+     "Summit Ridge 10L Dry Bag"
+    ],
+    [
+     "NP-11743",
+     "Strata Cascade 45L Pack"
+    ],
+    [
+     "NP-11358",
+     "Summit Trail Quilt"
+    ],
+    [
+     "NP-10469",
+     "Ridgeway Ridge Merino Bottom"
+    ],
+    [
+     "NP-10357",
+     "Summit Ridge Merino Top"
+    ],
+    [
+     "NP-11911",
+     "Alder & Co Juniper Merino Top"
+    ],
+    [
+     "NP-12366",
+     "Basalt Tundra Synthetic Crew"
+    ],
+    [
+     "NP-11645",
+     "Fjell Canyon SUP Paddle"
+    ],
+    [
+     "NP-11694",
+     "Summit Ridge 9.5mm Rope"
+    ],
+    [
+     "NP-11799",
+     "Kestrel Trail Glove Liner"
+    ],
+    [
+     "NP-10301",
+     "Ridgeway Cascade Mid Boot"
+    ],
+    [
+     "NP-11127",
+     "Summit Mesa Down Jacket"
+    ],
+    [
+     "NP-12142",
+     "Summit Juniper Quilt"
+    ],
+    [
+     "NP-11050",
+     "Northpine Trail Fleece"
+    ]
+   ]
+  }
+ ],
+ "F03": [
+  {
+   "columns": [
+    "id",
+    "first_name",
+    "last_name",
+    "count"
+   ],
+   "rows": [
+    [
+     2196.0,
+     "Noah",
+     "Hall",
+     11.0
+    ],
+    [
+     1940.0,
+     "Priya",
+     "Green",
+     17.0
+    ],
+    [
+     699.0,
+     "Mateo",
+     "Carter",
+     17.0
+    ],
+    [
+     847.0,
+     "Liam",
+     "Chen",
+     17.0
+    ],
+    [
+     1265.0,
+     "Naomi",
+     "Young",
+     11.0
+    ],
+    [
+     899.0,
+     "Owen",
+     "Taylor",
+     12.0
+    ],
+    [
+     2114.0,
+     "Hannah",
+     "Davis",
+     12.0
+    ],
+    [
+     843.0,
+     "Ethan",
+     "Harris",
+     11.0
+    ],
+    [
+     3157.0,
+     "Isaac",
+     "Lewis",
+     12.0
+    ],
+    [
+     43.0,
+     "Samuel",
+     "Kim",
+     11.0
+    ],
+    [
+     1687.0,
+     "Clara",
+     "Moore",
+     26.0
+    ],
+    [
+     1432.0,
+     "Liam",
+     "Turner",
+     12.0
+    ],
+    [
+     523.0,
+     "Sofia",
+     "Hall",
+     12.0
+    ],
+    [
+     2748.0,
+     "Clara",
+     "Smith",
+     21.0
+    ],
+    [
+     1716.0,
+     "Theo",
+     "Young",
+     11.0
+    ],
+    [
+     1946.0,
+     "Sara",
+     "Anderson",
+     18.0
+    ],
+    [
+     3148.0,
+     "Sofia",
+     "King",
+     18.0
+    ],
+    [
+     1353.0,
+     "Wyatt",
+     "Martinez",
+     12.0
+    ],
+    [
+     3195.0,
+     "Naomi",
+     "Garcia",
+     12.0
+    ],
+    [
+     2533.0,
+     "Ivy",
+     "Nguyen",
+     12.0
+    ],
+    [
+     1007.0,
+     "Wyatt",
+     "Kim",
+     13.0
+    ],
+    [
+     1762.0,
+     "Lucas",
+     "Moore",
+     14.0
+    ],
+    [
+     1924.0,
+     "Ava",
+     "Jackson",
+     19.0
+    ],
+    [
+     532.0,
+     "Hannah",
+     "Garcia",
+     11.0
+    ],
+    [
+     1645.0,
+     "Sara",
+     "Miller",
+     13.0
+    ],
+    [
+     1658.0,
+     "Priya",
+     "Green",
+     12.0
+    ],
+    [
+     89.0,
+     "Theo",
+     "Turner",
+     11.0
+    ],
+    [
+     1299.0,
+     "Miles",
+     "Scott",
+     17.0
+    ],
+    [
+     475.0,
+     "Sofia",
+     "White",
+     17.0
+    ],
+    [
+     1773.0,
+     "Owen",
+     "Nelson",
+     13.0
+    ],
+    [
+     2502.0,
+     "Lucia",
+     "Walker",
+     12.0
+    ],
+    [
+     1985.0,
+     "Daniel",
+     "Davis",
+     11.0
+    ],
+    [
+     3165.0,
+     "Jack",
+     "Taylor",
+     17.0
+    ],
+    [
+     1387.0,
+     "Liam",
+     "Thomas",
+     15.0
+    ],
+    [
+     109.0,
+     "Hannah",
+     "Lewis",
+     16.0
+    ],
+    [
+     757.0,
+     "Wyatt",
+     "White",
+     16.0
+    ]
+   ]
+  }
+ ],
+ "F04": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "Kayaks",
+     138954.8
+    ],
+    [
+     "Trail Runners",
+     171006.9
+    ],
+    [
+     "Backpacking Packs",
+     401005.78
+    ],
+    [
+     "Sleeping Bags",
+     267371.01
+    ],
+    [
+     "Jackets",
+     386230.67
+    ],
+    [
+     "Ropes",
+     137718.92
+    ],
+    [
+     "Hiking Boots",
+     130093.53
+    ],
+    [
+     "Tents",
+     764975.18
+    ],
+    [
+     "Climbing Shoes",
+     299905.85
+    ]
+   ]
+  }
+ ],
+ "F05": [
+  {
+   "columns": [
+    "count"
+   ],
+   "rows": [
+    [
+     922.0
+    ]
+   ]
+  }
+ ],
+ "F06": [],
+ "G01": [
+  {
+   "columns": [
+    "name",
+    "sum"
+   ],
+   "rows": [
+    [
+     "Kestrel Tundra Approach Shoe",
+     812.0
+    ],
+    [
+     "Kestrel Aspen 10L Dry Bag",
+     531.0
+    ],
+    [
+     "Lumen Aspen Fleece",
+     407.0
+    ],
+    [
+     "Torrent Canyon 45L Pack",
+     300.0
+    ],
+    [
+     "Ridgeway Mesa 5L Dry Bag",
+     188.0
+    ]
+   ]
+  }
+ ],
+ "G02": [
+  {
+   "columns": [
+    "category",
+    "product",
+    "units"
+   ],
+   "rows": [
+    [
+     "Backpacking Packs",
+     "Torrent Canyon 45L Pack",
+     651.0
+    ],
+    [
+     "Backpacking Packs",
+     "Torrent Ridge 45L Pack",
+     565.0
+    ],
+    [
+     "Backpacking Packs",
+     "Summit Tundra 65L Pack II",
+     140.0
+    ],
+    [
+     "Base Layers",
+     "Ridgeway Juniper Merino Top",
+     298.0
+    ],
+    [
+     "Base Layers",
+     "Basalt Alpine Merino Top",
+     239.0
+    ],
+    [
+     "Base Layers",
+     "Lumen Trail Merino Bottom",
+     136.0
+    ],
+    [
+     "Camp Kitchen",
+     "Summit Granite Stove",
+     251.0
+    ],
+    [
+     "Camp Kitchen",
+     "Kestrel Sierra Water Filter",
+     225.0
+    ],
+    [
+     "Camp Kitchen",
+     "Ridgeway Ridge Cook Set",
+     131.0
+    ],
+    [
+     "Climbing Shoes",
+     "Kestrel Tundra Approach Shoe",
+     2017.0
+    ],
+    [
+     "Climbing Shoes",
+     "Summit Aspen Approach Shoe",
+     84.0
+    ],
+    [
+     "Climbing Shoes",
+     "Kestrel Sierra Climbing Shoe",
+     81.0
+    ],
+    [
+     "Daypacks",
+     "Ridgeway Tundra 24L Daypack",
+     116.0
+    ],
+    [
+     "Daypacks",
+     "Haven Granite 30L Daypack",
+     90.0
+    ],
+    [
+     "Daypacks",
+     "Basalt Ridge 30L Daypack",
+     55.0
+    ],
+    [
+     "Dry Bags",
+     "Kestrel Aspen 10L Dry Bag",
+     1190.0
+    ],
+    [
+     "Dry Bags",
+     "Ridgeway Mesa 5L Dry Bag",
+     459.0
+    ],
+    [
+     "Dry Bags",
+     "Fjell Trail 5L Dry Bag",
+     163.0
+    ],
+    [
+     "Harnesses",
+     "Northpine Alpine Harness",
+     286.0
+    ],
+    [
+     "Harnesses",
+     "Ridgeway Aspen Kids Harness",
+     78.0
+    ],
+    [
+     "Harnesses",
+     "Northpine Cascade Harness",
+     67.0
+    ],
+    [
+     "Hats & Gloves",
+     "Fjell Glacier Mitts",
+     126.0
+    ],
+    [
+     "Hats & Gloves",
+     "Haven Juniper Glove Liner",
+     77.0
+    ],
+    [
+     "Hats & Gloves",
+     "Kestrel Aspen Sun Hat",
+     72.0
+    ],
+    [
+     "Hiking Boots",
+     "Summit Ridge Hiking Boot",
+     66.0
+    ],
+    [
+     "Hiking Boots",
+     "Basalt Trail Winter Boot",
+     63.0
+    ],
+    [
+     "Hiking Boots",
+     "Ridgeway Mesa Winter Boot",
+     62.0
+    ],
+    [
+     "Jackets",
+     "Lumen Aspen Fleece",
+     802.0
+    ],
+    [
+     "Jackets",
+     "Summit Granite Rain Jacket",
+     451.0
+    ],
+    [
+     "Jackets",
+     "Summit Ridge Softshell",
+     108.0
+    ],
+    [
+     "Kayaks",
+     "Alder & Co Glacier Inflatable Kayak",
+     72.0
+    ],
+    [
+     "Kayaks",
+     "Ridgeway Mesa Touring Kayak",
+     37.0
+    ],
+    [
+     "Kayaks",
+     "Coyote Granite Touring Kayak",
+     36.0
+    ],
+    [
+     "Lighting",
+     "Summit Mesa Headlamp",
+     124.0
+    ],
+    [
+     "Lighting",
+     "Fjell Alpine String Lights",
+     64.0
+    ],
+    [
+     "Lighting",
+     "Summit Cascade Headlamp",
+     64.0
+    ],
+    [
+     "Paddles",
+     "Coyote Canyon Kayak Paddle",
+     15.0
+    ],
+    [
+     "Paddles",
+     "Coyote Ridge SUP Paddle",
+     13.0
+    ],
+    [
+     "Paddles",
+     "Ridgeway Trail SUP Paddle",
+     12.0
+    ],
+    [
+     "Ropes",
+     "Kestrel Cascade 9.8mm Rope",
+     96.0
+    ],
+    [
+     "Ropes",
+     "Kestrel Trail 9.5mm Rope",
+     80.0
+    ],
+    [
+     "Ropes",
+     "Lumen Aspen 9.8mm Rope",
+     76.0
+    ],
+    [
+     "Sandals",
+     "Kestrel Canyon Water Shoe",
+     230.0
+    ],
+    [
+     "Sandals",
+     "Ridgeway Ridge Sandal",
+     74.0
+    ],
+    [
+     "Sandals",
+     "Summit Sierra Sandal",
+     48.0
+    ],
+    [
+     "Sleeping Bags",
+     "Alder & Co Ridge Quilt",
+     158.0
+    ],
+    [
+     "Sleeping Bags",
+     "Kestrel Glacier 0F Sleeping Bag",
+     157.0
+    ],
+    [
+     "Sleeping Bags",
+     "Northpine Ridge 30F Sleeping Bag",
+     83.0
+    ],
+    [
+     "Tents",
+     "Summit Cascade 3P Tent",
+     356.0
+    ],
+    [
+     "Tents",
+     "Coyote Glacier 3P Tent",
+     252.0
+    ],
+    [
+     "Tents",
+     "Kestrel Sierra 4P Tent",
+     192.0
+    ],
+    [
+     "Trail Runners",
+     "Northpine Granite Trail Runner GTX",
+     333.0
+    ],
+    [
+     "Trail Runners",
+     "Torrent Cascade Trail Runner",
+     204.0
+    ],
+    [
+     "Trail Runners",
+     "Kestrel Canyon Trail Runner II",
+     84.0
+    ]
+   ]
+  }
+ ],
+ "G03": [
+  {
+   "columns": [
+    "id",
+    "first_name",
+    "last_name",
+    "round"
+   ],
+   "rows": [
+    [
+     1299.0,
+     "Miles",
+     "Scott",
+     25062.38
+    ]
+   ]
+  }
+ ],
+ "G04": [
+  {
+   "columns": [
+    "brand",
+    "count"
+   ],
+   "rows": [
+    [
+     "Strata",
+     109.0
+    ]
+   ]
+  }
+ ],
+ "G05": [
+  {
+   "columns": [
+    "id",
+    "order_number",
+    "placed_at"
+   ],
+   "rows": [
+    [
+     84.0,
+     "NP-1011945",
+     "2026-09-19 12:54:59.331743+00"
+    ],
+    [
+     109.0,
+     "NP-1011608",
+     "2026-09-02 21:04:46.715639+00"
+    ],
+    [
+     131.0,
+     "NP-1009875",
+     "2026-06-22 12:59:51.958761+00"
+    ],
+    [
+     149.0,
+     "NP-1012054",
+     "2026-09-26 04:26:07.225785+00"
+    ],
+    [
+     193.0,
+     "NP-1011408",
+     "2026-08-26 09:23:47.696521+00"
+    ],
+    [
+     262.0,
+     "NP-1007470",
+     "2026-01-20 00:56:16.569597+00"
+    ],
+    [
+     279.0,
+     "NP-1012231",
+     "2026-10-04 13:11:17.578536+00"
+    ],
+    [
+     293.0,
+     "NP-1010716",
+     "2026-07-27 02:15:39.400634+00"
+    ],
+    [
+     366.0,
+     "NP-1011034",
+     "2026-08-10 04:27:05.061071+00"
+    ],
+    [
+     386.0,
+     "NP-1011439",
+     "2026-08-27 11:58:20.799042+00"
+    ],
+    [
+     387.0,
+     "NP-1011760",
+     "2026-09-10 07:13:42.526398+00"
+    ],
+    [
+     426.0,
+     "NP-1011698",
+     "2026-09-06 21:37:24.068887+00"
+    ],
+    [
+     436.0,
+     "NP-1010252",
+     "2026-07-09 02:24:48.76831+00"
+    ],
+    [
+     475.0,
+     "NP-1011902",
+     "2026-09-17 05:40:39.621832+00"
+    ],
+    [
+     541.0,
+     "NP-1011745",
+     "2026-09-09 09:48:29.555816+00"
+    ],
+    [
+     575.0,
+     "NP-1010757",
+     "2026-07-28 23:55:45.741414+00"
+    ],
+    [
+     699.0,
+     "NP-1011913",
+     "2026-09-18 00:48:46.47809+00"
+    ],
+    [
+     716.0,
+     "NP-1009905",
+     "2026-06-23 14:39:22.091988+00"
+    ],
+    [
+     740.0,
+     "NP-1012037",
+     "2026-09-25 09:28:58.125195+00"
+    ],
+    [
+     757.0,
+     "NP-1010849",
+     "2026-08-02 03:38:30.079819+00"
+    ],
+    [
+     787.0,
+     "NP-1012122",
+     "2026-09-29 04:19:12.952901+00"
+    ],
+    [
+     816.0,
+     "NP-1011028",
+     "2026-08-09 22:04:24.774732+00"
+    ],
+    [
+     843.0,
+     "NP-1012151",
+     "2026-09-30 08:59:53.597893+00"
+    ],
+    [
+     847.0,
+     "NP-1012150",
+     "2026-09-30 08:23:16.785916+00"
+    ],
+    [
+     899.0,
+     "NP-1011733",
+     "2026-09-08 17:10:40.426038+00"
+    ],
+    [
+     900.0,
+     "NP-1011141",
+     "2026-08-14 23:16:58.762134+00"
+    ],
+    [
+     925.0,
+     "NP-1010189",
+     "2026-07-06 02:59:18.61987+00"
+    ],
+    [
+     944.0,
+     "NP-1009410",
+     "2026-05-30 06:52:55.457021+00"
+    ],
+    [
+     969.0,
+     "NP-1011866",
+     "2026-09-15 16:02:17.465636+00"
+    ],
+    [
+     978.0,
+     "NP-1012188",
+     "2026-10-02 02:07:39.572906+00"
+    ],
+    [
+     997.0,
+     "NP-1009356",
+     "2026-05-27 09:01:43.651326+00"
+    ],
+    [
+     1007.0,
+     "NP-1011146",
+     "2026-08-15 00:31:04.206178+00"
+    ],
+    [
+     1009.0,
+     "NP-1011748",
+     "2026-09-09 14:56:53.842386+00"
+    ],
+    [
+     1025.0,
+     "NP-1011933",
+     "2026-09-19 02:02:47.122051+00"
+    ],
+    [
+     1055.0,
+     "NP-1012207",
+     "2026-10-03 07:23:14.071037+00"
+    ],
+    [
+     1091.0,
+     "NP-1011893",
+     "2026-09-16 21:52:10.511613+00"
+    ],
+    [
+     1116.0,
+     "NP-1010743",
+     "2026-07-28 05:30:28.909722+00"
+    ],
+    [
+     1172.0,
+     "NP-1012144",
+     "2026-09-30 04:51:55.623877+00"
+    ],
+    [
+     1198.0,
+     "NP-1011652",
+     "2026-09-04 22:28:18.744327+00"
+    ],
+    [
+     1223.0,
+     "NP-1006816",
+     "2025-12-13 13:26:17.251008+00"
+    ],
+    [
+     1272.0,
+     "NP-1011478",
+     "2026-08-29 00:43:17.355518+00"
+    ],
+    [
+     1299.0,
+     "NP-1012163",
+     "2026-10-01 00:05:47.941561+00"
+    ],
+    [
+     1353.0,
+     "NP-1011825",
+     "2026-09-13 11:19:45.721145+00"
+    ],
+    [
+     1436.0,
+     "NP-1011814",
+     "2026-09-12 23:21:30.165994+00"
+    ],
+    [
+     1469.0,
+     "NP-1011015",
+     "2026-08-09 04:16:07.642999+00"
+    ],
+    [
+     1503.0,
+     "NP-1011798",
+     "2026-09-12 08:10:03.642219+00"
+    ],
+    [
+     1555.0,
+     "NP-1011203",
+     "2026-08-17 23:11:05.764798+00"
+    ],
+    [
+     1646.0,
+     "NP-1012185",
+     "2026-10-02 00:44:48.188945+00"
+    ],
+    [
+     1658.0,
+     "NP-1011840",
+     "2026-09-14 16:04:07.099226+00"
+    ],
+    [
+     1673.0,
+     "NP-1011470",
+     "2026-08-28 15:41:07.288057+00"
+    ],
+    [
+     1687.0,
+     "NP-1011288",
+     "2026-08-22 07:16:00.79676+00"
+    ],
+    [
+     1700.0,
+     "NP-1010095",
+     "2026-07-02 05:01:30.816399+00"
+    ],
+    [
+     1727.0,
+     "NP-1011569",
+     "2026-08-31 18:56:27.215474+00"
+    ],
+    [
+     1750.0,
+     "NP-1011381",
+     "2026-08-25 10:13:55.218732+00"
+    ],
+    [
+     1762.0,
+     "NP-1011534",
+     "2026-08-30 17:45:11.096512+00"
+    ],
+    [
+     1764.0,
+     "NP-1011885",
+     "2026-09-16 11:21:32.451437+00"
+    ],
+    [
+     1911.0,
+     "NP-1011668",
+     "2026-09-05 13:54:26.35678+00"
+    ],
+    [
+     1924.0,
+     "NP-1011872",
+     "2026-09-15 22:40:29.25554+00"
+    ],
+    [
+     1940.0,
+     "NP-1011038",
+     "2026-08-10 09:09:57.009898+00"
+    ],
+    [
+     1943.0,
+     "NP-1011283",
+     "2026-08-21 21:49:18.680839+00"
+    ],
+    [
+     1946.0,
+     "NP-1011692",
+     "2026-09-06 12:19:28.506665+00"
+    ],
+    [
+     1988.0,
+     "NP-1012182",
+     "2026-10-01 19:27:06.208263+00"
+    ],
+    [
+     1992.0,
+     "NP-1008851",
+     "2026-04-28 22:40:59.496045+00"
+    ],
+    [
+     2075.0,
+     "NP-1010441",
+     "2026-07-16 10:21:37.522298+00"
+    ],
+    [
+     2110.0,
+     "NP-1012116",
+     "2026-09-28 20:42:04.161876+00"
+    ],
+    [
+     2169.0,
+     "NP-1011981",
+     "2026-09-22 09:30:43.475408+00"
+    ],
+    [
+     2251.0,
+     "NP-1012183",
+     "2026-10-01 19:32:59.990094+00"
+    ],
+    [
+     2258.0,
+     "NP-1011469",
+     "2026-08-28 15:16:45.811732+00"
+    ],
+    [
+     2271.0,
+     "NP-1011560",
+     "2026-08-31 13:11:54.972372+00"
+    ],
+    [
+     2285.0,
+     "NP-1003329",
+     "2025-03-24 13:33:59.71964+00"
+    ],
+    [
+     2317.0,
+     "NP-1002518",
+     "2024-12-06 14:59:20.536112+00"
+    ],
+    [
+     2361.0,
+     "NP-1012104",
+     "2026-09-27 22:59:40.768166+00"
+    ],
+    [
+     2363.0,
+     "NP-1011718",
+     "2026-09-07 19:52:26.195721+00"
+    ],
+    [
+     2376.0,
+     "NP-1010302",
+     "2026-07-11 01:14:18.045666+00"
+    ],
+    [
+     2383.0,
+     "NP-1011750",
+     "2026-09-09 18:32:36.265004+00"
+    ],
+    [
+     2448.0,
+     "NP-1009933",
+     "2026-06-24 16:49:06.480468+00"
+    ],
+    [
+     2452.0,
+     "NP-1011672",
+     "2026-09-05 18:19:30.298438+00"
+    ],
+    [
+     2509.0,
+     "NP-1011524",
+     "2026-08-30 10:40:20.133098+00"
+    ],
+    [
+     2524.0,
+     "NP-1009595",
+     "2026-06-09 08:59:07.452084+00"
+    ],
+    [
+     2548.0,
+     "NP-1010017",
+     "2026-06-28 07:47:39.128787+00"
+    ],
+    [
+     2585.0,
+     "NP-1011925",
+     "2026-09-18 15:15:32.355813+00"
+    ],
+    [
+     2629.0,
+     "NP-1012035",
+     "2026-09-25 08:38:47.127392+00"
+    ],
+    [
+     2631.0,
+     "NP-1011850",
+     "2026-09-15 07:44:32.419419+00"
+    ],
+    [
+     2673.0,
+     "NP-1011915",
+     "2026-09-18 01:39:35.057553+00"
+    ],
+    [
+     2679.0,
+     "NP-1012228",
+     "2026-10-04 06:56:30.310306+00"
+    ],
+    [
+     2683.0,
+     "NP-1011880",
+     "2026-09-16 06:03:04.645628+00"
+    ],
+    [
+     2716.0,
+     "NP-1008633",
+     "2026-04-17 10:04:49.210749+00"
+    ],
+    [
+     2718.0,
+     "NP-1009974",
+     "2026-06-26 06:41:43.796838+00"
+    ],
+    [
+     2741.0,
+     "NP-1009921",
+     "2026-06-24 08:32:11.508089+00"
+    ],
+    [
+     2748.0,
+     "NP-1012220",
+     "2026-10-03 22:06:38.646177+00"
+    ],
+    [
+     2794.0,
+     "NP-1005867",
+     "2025-10-23 07:51:13.694049+00"
+    ],
+    [
+     2907.0,
+     "NP-1010344",
+     "2026-07-12 09:02:13.608337+00"
+    ],
+    [
+     2931.0,
+     "NP-1012233",
+     "2026-10-04 15:29:15.55677+00"
+    ],
+    [
+     2980.0,
+     "NP-1011826",
+     "2026-09-13 11:34:30.529781+00"
+    ],
+    [
+     3107.0,
+     "NP-1012139",
+     "2026-09-30 00:58:22.725412+00"
+    ],
+    [
+     3137.0,
+     "NP-1011666",
+     "2026-09-05 13:22:28.441102+00"
+    ],
+    [
+     3148.0,
+     "NP-1011871",
+     "2026-09-15 22:38:46.962221+00"
+    ]
+   ]
+  }
+ ],
+ "H01": [
+  {
+   "columns": [
+    "m",
+    "total",
+    "pct_change"
+   ],
+   "rows": [
+    [
+     "2026-01-01",
+     262139.43,
+     null
+    ],
+    [
+     "2026-02-01",
+     218398.22,
+     -16.69
+    ],
+    [
+     "2026-03-01",
+     354999.65,
+     62.55
+    ],
+    [
+     "2026-04-01",
+     372530.25,
+     4.94
+    ],
+    [
+     "2026-05-01",
+     442687.7,
+     18.83
+    ],
+    [
+     "2026-06-01",
+     450575.74,
+     1.78
+    ],
+    [
+     "2026-07-01",
+     564551.38,
+     25.3
+    ],
+    [
+     "2026-08-01",
+     515216.68,
+     -8.74
+    ],
+    [
+     "2026-09-01",
+     435450.43,
+     -15.48
+    ],
+    [
+     "2026-10-01",
+     52759.63,
+     -87.88
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "m",
+    "total",
+    "pct_change"
+   ],
+   "rows": [
+    [
+     "2026-01-01",
+     262139.43,
+     null
+    ],
+    [
+     "2026-02-01",
+     218398.22,
+     -0.17
+    ],
+    [
+     "2026-03-01",
+     354999.65,
+     0.63
+    ],
+    [
+     "2026-04-01",
+     372530.25,
+     0.05
+    ],
+    [
+     "2026-05-01",
+     442687.7,
+     0.19
+    ],
+    [
+     "2026-06-01",
+     450575.74,
+     0.02
+    ],
+    [
+     "2026-07-01",
+     564551.38,
+     0.25
+    ],
+    [
+     "2026-08-01",
+     515216.68,
+     -0.09
+    ],
+    [
+     "2026-09-01",
+     435450.43,
+     -0.15
+    ],
+    [
+     "2026-10-01",
+     52759.63,
+     -0.88
+    ]
+   ]
+  }
+ ],
+ "H02": [
+  {
+   "columns": [
+    "channel",
+    "count",
+    "round"
+   ],
+   "rows": [
+    [
+     "phone",
+     578.0,
+     12.91
+    ],
+    [
+     "marketplace",
+     510.0,
+     11.39
+    ],
+    [
+     "web",
+     2306.0,
+     51.51
+    ],
+    [
+     "mobile_app",
+     1083.0,
+     24.19
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "channel",
+    "count",
+    "round"
+   ],
+   "rows": [
+    [
+     "phone",
+     578.0,
+     0.13
+    ],
+    [
+     "marketplace",
+     510.0,
+     0.11
+    ],
+    [
+     "web",
+     2306.0,
+     0.52
+    ],
+    [
+     "mobile_app",
+     1083.0,
+     0.24
+    ]
+   ]
+  }
+ ],
+ "H03": [
+  {
+   "columns": [
+    "m",
+    "n",
+    "sum"
+   ],
+   "rows": [
+    [
+     "2026-01-01",
+     95.0,
+     95.0
+    ],
+    [
+     "2026-02-01",
+     94.0,
+     189.0
+    ],
+    [
+     "2026-03-01",
+     107.0,
+     296.0
+    ],
+    [
+     "2026-04-01",
+     120.0,
+     416.0
+    ],
+    [
+     "2026-05-01",
+     133.0,
+     549.0
+    ],
+    [
+     "2026-06-01",
+     119.0,
+     668.0
+    ],
+    [
+     "2026-07-01",
+     140.0,
+     808.0
+    ],
+    [
+     "2026-08-01",
+     128.0,
+     936.0
+    ],
+    [
+     "2026-09-01",
+     119.0,
+     1055.0
+    ]
+   ]
+  }
+ ],
+ "I01": [],
+ "I02": [
+  {
+   "columns": [
+    "round"
+   ],
+   "rows": [
+    [
+     127975.37
+    ]
+   ]
+  }
+ ],
+ "I03": [],
+ "I04": [],
+ "I05": [],
+ "J01": [],
+ "J02": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "South",
+     74905.86
+    ],
+    [
+     "West",
+     124768.19
+    ],
+    [
+     "East",
+     91485.07
+    ],
+    [
+     "Central",
+     97127.51
+    ]
+   ]
+  }
+ ],
+ "J03": [
+  {
+   "columns": [
+    "round"
+   ],
+   "rows": [
+    [
+     1128607.66
+    ]
+   ]
+  }
+ ],
+ "J04": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "Tents",
+     754163.16
+    ],
+    [
+     "Backpacking Packs",
+     471070.86
+    ],
+    [
+     "Jackets",
+     395312.33
+    ],
+    [
+     "Climbing Shoes",
+     275990.39
+    ],
+    [
+     "Sleeping Bags",
+     244895.17
+    ]
+   ]
+  }
+ ],
+ "J05": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "South",
+     74905.86
+    ],
+    [
+     "West",
+     124768.19
+    ],
+    [
+     "East",
+     91485.07
+    ],
+    [
+     "Central",
+     97127.51
+    ]
+   ]
+  }
+ ],
+ "J06": [
+  {
+   "columns": [
+    "name",
+    "round"
+   ],
+   "rows": [
+    [
+     "East",
+     295455.4
+    ]
+   ]
+  },
+  {
+   "columns": [
+    "round"
+   ],
+   "rows": [
+    [
+     295455.4
+    ]
+   ]
+  }
+ ]
+}

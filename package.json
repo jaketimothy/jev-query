@@ -1,0 +1,76 @@
+{
+  "name": "jev-query",
+  "version": "0.1.0",
+  "description": "Plug-and-play natural-language → PostgreSQL composer. The model never writes SQL: code enumerates legal moves, a decision model (Jev) picks among them, code compiles parameterized SQL.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./pglite": {
+      "types": "./dist/db/pglite.d.ts",
+      "import": "./dist/db/pglite.js"
+    },
+    "./pg": {
+      "types": "./dist/db/pg.d.ts",
+      "import": "./dist/db/pg.js"
+    }
+  },
+  "bin": {
+    "jev-query": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "testbed:load": "tsx scripts/load-testbed.ts",
+    "eval": "tsx src/cli.ts eval --testbed testbed",
+    "cli": "tsx src/cli.ts",
+    "playground": "tsx examples/playground/server.ts"
+  },
+  "keywords": [
+    "nl2sql",
+    "text-to-sql",
+    "postgres",
+    "jev",
+    "typesafe",
+    "natural-language",
+    "query-builder"
+  ],
+  "dependencies": {
+    "yaml": "^2.5.0"
+  },
+  "peerDependencies": {
+    "@electric-sql/pglite": ">=0.2.0",
+    "pg": "^8.11.0"
+  },
+  "peerDependenciesMeta": {
+    "pg": {
+      "optional": true
+    },
+    "@electric-sql/pglite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

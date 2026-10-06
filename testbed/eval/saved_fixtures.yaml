@@ -1,0 +1,51 @@
+# Saved-query fixtures for the J cases. Format follows spec §2B (saved query library).
+# A harness loads the named fixture into the composer's SavedQueryStore before running the case.
+
+fixtures:
+
+  # A reusable measure fragment, as created when a user accepts a query that defined "revenue".
+  revenue_v1:
+    - kind: measure
+      name: revenue
+      phrases: [revenue, sales, net sales]
+      definition:
+        agg: sum
+        column: order_items.line_total_cents
+        unit: cents
+        row_filters:
+          - {column: orders.status, op: not_in, values: [cancelled, refunded]}
+      narrative: "Revenue: total of order line amounts, excluding cancelled and refunded orders."
+      scope: org
+      status: canonical
+      accepted_by: fixture
+      accepted_at: "2026-09-15T17:02:00Z"
+      schema_fingerprint: {order_items.line_total_cents: integer, orders.status: order_status}
+
+  # A whole accepted plan; its literals are slots that can be rebound.
+  revenue_by_customer_region_last_month:
+    - include: revenue_v1
+    - kind: plan
+      request: Revenue by customer region last month
+      narrative: "Revenue (order line amounts, excluding cancelled and refunded orders) for each customer region, for orders placed in the previous calendar month."
+      plan:
+        shape: breakdown
+        measures:
+          - {saved_measure: revenue, alias: revenue}
+        dimensions:
+          - {column: regions.name}
+        joins:
+          - {from: order_items.order_id, to: orders.id}
+          - {from: orders.customer_id, to: customers.id}
+          - {from: customers.region_id, to: regions.id}
+        filters: []
+        timeWindow: {column: orders.placed_at, period: last_month}
+        order: [{measure: revenue, dir: desc}]
+      slots:
+        - {path: timeWindow.period, kind: period, default: last_month}
+        - {path: filters, kind: filter_list, default: []}
+      decisions_pinned:
+        join_path.orders_regions: via_customer   # the clarification answer the user gave; reused without re-asking
+      scope: org
+      status: accepted
+      accepted_by: fixture
+      accepted_at: "2026-09-20T09:41:00Z"
