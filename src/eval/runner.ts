@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { Composer, type Result } from "../composer.js";
@@ -13,7 +13,7 @@ import type { SchemaModel } from "../schema/model.js";
 import { splitRef } from "../schema/model.js";
 import { JoinGraph } from "../joins/graph.js";
 import { periodBounds, type PeriodKey } from "../time/periods.js";
-import { checkCase, type CaseResult, type CheckOutcome, type EvalCase } from "./harness.js";
+import { checkCase, runSql, setSearchPath, type CaseResult, type CheckOutcome, type EvalCase } from "./harness.js";
 
 export interface EvalReport {
   passed: number;
@@ -22,13 +22,17 @@ export interface EvalReport {
   weakBlocks: { block: string; passed: number; total: number }[];
 }
 
+/** Cases from <dir>/cases.yaml (benchmarks) or <dir>/eval/cases.yaml (testbed). */
 export function loadCases(testbedDir: string): EvalCase[] {
-  return (parse(readFileSync(join(testbedDir, "eval", "cases.yaml"), "utf8")) as { cases: EvalCase[] }).cases;
+  const p = existsSync(join(testbedDir, "cases.yaml")) ? join(testbedDir, "cases.yaml") : join(testbedDir, "eval", "cases.yaml");
+  return (parse(readFileSync(p, "utf8")) as { cases: EvalCase[] }).cases;
 }
 
 /** Convert eval/saved_fixtures.yaml into SavedRecords for a model. */
 export function loadFixtures(testbedDir: string, model: SchemaModel): Record<string, SavedRecord[]> {
-  const raw = (parse(readFileSync(join(testbedDir, "eval", "saved_fixtures.yaml"), "utf8")) as { fixtures: Record<string, Record<string, unknown>[]> }).fixtures;
+  const fx = join(testbedDir, "eval", "saved_fixtures.yaml");
+  if (!existsSync(fx)) return {};
+  const raw = (parse(readFileSync(fx, "utf8")) as { fixtures: Record<string, Record<string, unknown>[]> }).fixtures;
   const out: Record<string, SavedRecord[]> = {};
   const resolve = (name: string): SavedRecord[] => {
     if (out[name]) return out[name];
@@ -120,10 +124,48 @@ export interface RunEvalOptions {
   config?: ComposerConfig;
   model?: SchemaModel;
   only?: string[];
+  /** search_path for unqualified gold SQL (default "shop" for the testbed) */
+  searchPath?: string;
   onCase?: (o: EvalReport["outcomes"][number]) => void;
 }
 
+/** Run every gold query; report row counts and ties at a LIMIT boundary (which make keys/ordered compares flaky). */
+export async function verifyGold(db: Db, testbedDir: string, searchPath = "shop"): Promise<{ id: string; ok: boolean; note: string }[]> {
+  process.env.TZ = "UTC";
+  setSearchPath(searchPath);
+  const out: { id: string; ok: boolean; note: string }[] = [];
+  for (const c of loadCases(testbedDir)) {
+    if (c.outcomes.includes("execute") && !c.gold?.length) {
+      out.push({ id: c.id, ok: false, note: "execute allowed but no gold" });
+      continue;
+    }
+    for (const [i, g] of (c.gold ?? []).entries()) {
+      try {
+        const r = await runSql(db, g);
+        let note = `${r.rows.length} rows${r.rows.length === 1 ? ` e.g. ${JSON.stringify(r.rows[0])}` : ""}`;
+        let ok = r.rows.length > 0 && !r.rows.every((row) => row.every((v) => v === null));
+        const lim = /LIMIT (\d+)\s*$/i.exec(g);
+        if (lim) {
+          const unlimited = await runSql(db, g.replace(/LIMIT \d+\s*$/i, `LIMIT ${Number(lim[1]) + 1}`));
+          const last = r.rows[r.rows.length - 1], next = unlimited.rows[r.rows.length];
+          if (last && next && JSON.stringify(last.slice(-1)) === JSON.stringify(next.slice(-1))) {
+            ok = false;
+            note += " — TIE at the LIMIT boundary";
+          }
+        }
+        out.push({ id: `${c.id}${c.gold!.length > 1 ? `[${i}]` : ""}`, ok, note });
+      } catch (e) {
+        out.push({ id: c.id, ok: false, note: `ERROR ${(e as Error).message}` });
+      }
+    }
+  }
+  return out;
+}
+
 export async function runEval(opts: RunEvalOptions): Promise<EvalReport> {
+  // PGlite parses "timestamp without time zone" in the process timezone; compare in UTC
+  process.env.TZ = "UTC";
+  setSearchPath(opts.searchPath ?? "shop");
   const cases = loadCases(opts.testbedDir).filter((c) => !opts.only?.length || opts.only.includes(c.id));
   const base = await Composer.create({ db: opts.db, oracle: opts.oracle, config: opts.config, model: opts.model });
   const fixtures = loadFixtures(opts.testbedDir, base.model);

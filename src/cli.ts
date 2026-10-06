@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Composer } from "./composer.js";
 import { parseConfig, type ComposerConfig } from "./config.js";
 import { openDb } from "./db/open.js";
-import { runEval } from "./eval/runner.js";
+import { runEval, verifyGold } from "./eval/runner.js";
 import { CachingOracle } from "./oracle/cache.js";
 import { HeuristicOracle } from "./oracle/heuristic.js";
 import { JevOracle } from "./oracle/jev.js";
@@ -19,7 +19,8 @@ Usage:
   jev-query introspect [--db URL] [--config composer.yaml] [--out composer.lock.json]
   jev-query doctor     [--db URL] [--config composer.yaml]
   jev-query ask "<request>" [--db URL] [--oracle heuristic|jev|logprob] [--execute] [--as-of ISO] [--json]
-  jev-query eval       [--testbed DIR] [--db URL] [--oracle heuristic|jev] [--only A01,B02] [--out results.jsonl] [--verbose]
+  jev-query eval       [--testbed DIR | --bench pagila|chinook|northwind] [--db URL] [--oracle heuristic|jev] [--only A01,B02]
+                       [--out results.jsonl] [--explain] [--verify-gold]
 
 Database URL:  postgres://user@host/db   (needs the "pg" package)
                pglite:./path/to/datadir   (needs "@electric-sql/pglite")
@@ -58,14 +59,23 @@ async function main() {
   const dbUrl = arg("db", process.env.DATABASE_URL ?? "pglite:.testbed-db")!;
 
   if (cmd === "eval") {
-    const testbed = arg("testbed", "testbed")!;
+    const bench = arg("bench");
+    const testbed = bench ? join("bench", bench) : arg("testbed", "testbed")!;
+    const searchPath = arg("search-path", bench ? "public" : "shop")!;
     const config = loadConfig(arg("config") ?? join(testbed, "composer.yaml"));
-    const { db, close } = await openDb(dbUrl);
+    const { db, close } = await openDb(bench && !arg("db") ? `pglite:.unseen-db/${bench}` : dbUrl);
+    if (flag("verify-gold")) {
+      const rows = await verifyGold(db, testbed, searchPath);
+      for (const r of rows) console.log(`${r.ok ? "ok  " : "BAD "} ${r.id.padEnd(8)} ${r.note}`);
+      await close();
+      process.exitCode = rows.every((r) => r.ok) ? 0 : 1;
+      return;
+    }
     const oracle = makeOracle(arg("oracle", "heuristic")!);
     const only = arg("only")?.split(",");
     const verbose = flag("verbose");
     const report = await runEval({
-      db, oracle, testbedDir: testbed, config, only,
+      db, oracle, testbedDir: testbed, config, only, searchPath,
       onCase: (o) => {
         console.log(`${o.ok ? "PASS" : "FAIL"} ${o.id.padEnd(4)} ${o.outcome.padEnd(8)}${o.about ? ` (${o.about})` : ""} ${o.why}`);
         if (verbose || (!o.ok && flag("explain"))) {

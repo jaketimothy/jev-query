@@ -153,7 +153,9 @@ export function buildSchemaModel(raw: RawCatalog, cfg: ComposerConfig = {}): Sch
       else if (isPk && pk.length === 1) [role, rule, conf] = ["identifier", "C1", 1];
       else if (fkColumns.has(ref)) [role, rule, conf] = ["foreign_key", "R1/R2", 1];
       else if (kind === "timestamp" || kind === "date") {
-        if (isSoftDeleteName(n) && kind === "timestamp") [role, rule, conf] = ["soft_delete", "C2", 0.9];
+        // a birth date is a personal attribute (C15), not the time something happened
+        if (/^(birth_?date|date_of_birth|dob|birthday)$/.test(n)) [role, rule, conf] = ["attribute", "C15", 0.9];
+        else if (isSoftDeleteName(n) && kind === "timestamp") [role, rule, conf] = ["soft_delete", "C2", 0.9];
         else if (isAuditName(n)) [role, rule, conf] = ["timestamp_audit", "C3", 0.9];
         else if (/^(created|inserted)_(at|on)$/.test(n)) {
           if (eventLikeNonCreated.length === 0) [role, rule, conf] = ["timestamp_event", "C3b", 0.85];
@@ -172,7 +174,8 @@ export function buildSchemaModel(raw: RawCatalog, cfg: ComposerConfig = {}): Sch
         values = check.values;
         valuesSource = "check";
       } else if (kind === "text") {
-        const freeName = /(description|body|notes?|comment|message|content|summary|text|bio)$/.test(n);
+        // "*_description" columns are often short names (region_description: "Eastern"); only long ones are prose
+        const freeName = /(description|body|notes?|comment|message|content|summary|text|bio)$/.test(n) && !((stat?.avgWidth ?? 99) <= 30 && scanned);
         if (freeName || (stat?.avgWidth ?? 0) > 80) [role, rule, conf] = ["free_text", "C8", 0.85];
         else if (nDistinct !== undefined && (nDistinct <= 50 || (t.rowEstimate > 0 && nDistinct <= t.rowEstimate * 0.01)) && stat?.mostCommonVals?.length && !isUnique) {
           [role, rule, conf] = ["dimension_categorical", "C8", 0.85];
@@ -183,7 +186,10 @@ export function buildSchemaModel(raw: RawCatalog, cfg: ComposerConfig = {}): Sch
           if (scanned) [values, valuesSource] = [scanned, "sample"];
         }
       } else if (kind === "number") {
-        if (isAttributeNumeric(n)) [role, rule, conf] = ["attribute", "C9", 0.85];
+        const mcv = stat?.mostCommonVals ?? [];
+        // C6b: an integer that only holds 0/1 (discontinued, active) is a flag, not a quantity
+        if (/int|smallint|bigint/.test(c.type) && nDistinct !== undefined && nDistinct <= 2 && mcv.length > 0 && mcv.every((v) => v === "0" || v === "1")) [role, rule, conf] = ["boolean_flag", "C6b", 0.85];
+        else if (isAttributeNumeric(n)) [role, rule, conf] = ["attribute", "C9", 0.85];
         else if (isNonAdditive(n)) [role, rule, conf] = ["measure_nonadditive", "C11", 0.8];
         else if (isSemiAdditive(n)) [role, rule, conf] = ["measure_semiadditive", "C11", 0.75];
         else {
@@ -311,12 +317,21 @@ export function buildSchemaModel(raw: RawCatalog, cfg: ComposerConfig = {}): Sch
 
     // C13 display column
     const s = singular(sn(t.name));
-    const displayOrder = ["name", "full_name", "title", "label", "display_name", `${s}_name`, `${sn(t.name)}_name`, "email", `${s}_number`, "number", "code", "sku"];
     let display: string[] = tOverride?.display ?? [];
     if (!tOverride?.display) {
       const bySn = new Map(Object.keys(columns).map((x) => [sn(x), x]));
-      const hit = displayOrder.map((d) => bySn.get(d)).find((d) => d && columns[d].kind === "text") ?? Object.keys(columns).find((x) => /_number$/.test(sn(x)) && columns[x].isUnique && columns[x].kind === "text");
-      if (hit && !columns[hit].pii) display = [hit];
+      const text = (x: string | undefined) => !!x && columns[x].kind === "text" && !columns[x].pii;
+      const first = bySn.get("first_name"), last = bySn.get("last_name");
+      const person = text(first) && text(last);
+      // people are named by first + last name; "title" on a person table is a job title
+      const order = ["name", "full_name", "display_name", `${s}_name`, `${sn(t.name)}_name`, ...(person ? [] : ["title"]), "label", "company_name"];
+      const hit =
+        order.map((d) => bySn.get(d)).find(text) ??
+        (person ? undefined : Object.keys(columns).find((x) => /_(name|description)$/.test(sn(x)) && text(x) && columns[x].role !== "free_text" && (columns[x].isUnique || (columns[x].nDistinct ?? 0) >= t.rowEstimate * 0.98))) ??
+        [`${s}_number`, "number", "code", "sku"].map((d) => bySn.get(d)).find(text) ??
+        Object.keys(columns).find((x) => /_number$/.test(sn(x)) && columns[x].isUnique && text(x));
+      if (hit) display = [hit];
+      else if (person) display = [first!, last!];
     }
 
     const noun = humanize(s);
@@ -424,7 +439,7 @@ function kindOf(c: RawColumn): ColumnModel["kind"] {
   return "other";
 }
 
-const isAuditName = (n: string) => /^(updated|modified|changed)_(at|on)$|_(synced|loaded|imported|refreshed)_at$/.test(n);
+const isAuditName = (n: string) => /^(updated|modified|changed)_(at|on)$|^(last_update[ds]?|last_modified|last_changed|date_modified|modified|updated|row_version)$|_(synced|loaded|imported|refreshed)_at$/.test(n);
 const isSoftDeleteName = (n: string) => /^(deleted|archived|discarded|removed)_at$/.test(n);
 const isAttributeNumeric = (n: string) =>
   /(_id|^id|code|zip|postal.*|phone|year|_number|^number|_no|version|rank|position|sort_order|^lat.*|^lng|^lon.*|latitude|longitude|_seq|sequence)$/.test(n) || /^(lat|lng|lon)/.test(n) || /(^|_)year(_|$)/.test(n);
@@ -436,6 +451,8 @@ const hasStrongAdditiveName = (n: string) =>
 const isPii = (n: string) => /^(email|e_mail|phone|phone_number|mobile|ssn|social_security.*|dob|date_of_birth|birth_?date|line1|line2|address_line\d?|street|password.*|ip_address|token|api_key|secret)$/.test(n) || /(^|_)(email|phone|ssn)$/.test(n);
 
 function unitOf(n: string, type: string): Unit | undefined {
+  if (/^(milliseconds|millis|duration_ms|length_ms)$/.test(n)) return { kind: "duration", divisor: 1000, label: "s" };
+  if (/^(seconds|duration_seconds|duration_secs)$/.test(n)) return { kind: "duration", label: "s" };
   if (/_cents$/.test(n)) return { kind: "money", divisor: 100, label: "USD" };
   if (type === "money" || /(^|_)(price|amount|revenue|cost|fee)(_|$)/.test(n)) return { kind: "money", label: "USD" };
   if (/_(pct|percent|percentage)$/.test(n)) return { kind: "percent", label: "%" };

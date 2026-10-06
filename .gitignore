@@ -9,3 +9,5 @@ eval-results*.jsonl
 .claude/settings.local.json
 .env
 .env.*
+.datasets/
+.unseen-db/

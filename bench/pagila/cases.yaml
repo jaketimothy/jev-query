@@ -1,0 +1,154 @@
+# Pagila (DVD rental) — unseen-schema benchmark.
+# as_of: 2026-08-01T00:00:00Z. Rentals and payments run 2022-01 → 2026-07-28.
+# payment is a partitioned table without FK constraints on the parent.
+
+cases:
+
+- id: PG01
+  request: How many films are rated PG-13?
+  blocks: [single_value, filter.value_link, conv.enum_values]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM film WHERE rating = 'PG-13'
+
+- id: PG02
+  request: Total payments last month
+  blocks: [single_value, agg.sum, time.last_month, conv.partitioned_table]
+  outcomes: [execute]
+  gold:
+    - SELECT sum(amount) FROM payment WHERE payment_date >= '2026-07-01' AND payment_date < '2026-08-01'
+
+- id: PG03
+  request: Number of rentals per store
+  blocks: [breakdown, join.multi_hop]
+  outcomes: [execute]
+  compare: keys
+  key: store_id
+  gold:
+    - SELECT i.store_id, count(*) FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id GROUP BY i.store_id
+
+- id: PG04
+  request: Top 10 customers by total payments
+  blocks: [ranking, agg.sum, conv.inferred_fk]
+  outcomes: [execute]
+  compare: keys
+  key: customer_id
+  gold:
+    - SELECT c.customer_id, c.first_name, c.last_name, sum(p.amount) FROM payment p JOIN customer c ON c.customer_id = p.customer_id GROUP BY c.customer_id ORDER BY 4 DESC, c.customer_id LIMIT 10
+
+- id: PG05
+  request: Number of films in each category
+  blocks: [breakdown, join.junction, entity_display]
+  outcomes: [execute]
+  notes: Originally "which category has the most films", but Drama and Music tie at 152.
+  gold:
+    - SELECT c.name, count(*) FROM film_category fc JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name
+
+- id: PG06
+  request: Average film length by rating
+  blocks: [breakdown, agg.avg, conv.enum_values]
+  outcomes: [execute]
+  gold:
+    - SELECT rating, round(avg(length), 2) FROM film GROUP BY rating
+
+- id: PG07
+  request: Films with Penelope Guiness
+  blocks: [lookup, join.junction, filter.name_across_columns]
+  outcomes: [execute, clarify]
+  compare: keys
+  key: film_id
+  gold:
+    - >-
+      SELECT f.film_id, f.title FROM film f WHERE EXISTS (SELECT 1 FROM film_actor fa JOIN actor a ON a.actor_id = fa.actor_id
+      WHERE fa.film_id = f.film_id AND a.first_name = 'PENELOPE' AND a.last_name = 'GUINESS')
+
+- id: PG08
+  request: Customers who have never rented a film
+  blocks: [lookup, existence.not_exists]
+  outcomes: [execute]
+  compare: keys
+  key: customer_id
+  gold:
+    - SELECT c.customer_id FROM customer c WHERE NOT EXISTS (SELECT 1 FROM rental r WHERE r.customer_id = c.customer_id)
+
+- id: PG09
+  request: How many active customers are there?
+  blocks: [single_value, filter.boolean, ambiguity.two_flags]
+  outcomes: [execute, clarify]
+  notes: customer has both activebool (boolean) and active (integer); they disagree for 43 rows. Either reading or a question is fine.
+  gold:
+    - SELECT count(*) FROM customer WHERE activebool
+    - SELECT count(*) FROM customer WHERE active = 1
+
+- id: PG10
+  request: Monthly rental count in 2025
+  blocks: [trend, time_grain.month, time.specific_year]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT date_trunc('month', rental_date) AS m, count(*) FROM rental WHERE rental_date >= '2025-01-01' AND rental_date < '2026-01-01' GROUP BY 1 ORDER BY 1
+
+- id: PG11
+  request: Films that have never been rented
+  blocks: [lookup, existence.not_exists, existence.multi_hop]
+  outcomes: [execute]
+  compare: keys
+  key: film_id
+  gold:
+    - SELECT f.film_id, f.title FROM film f WHERE NOT EXISTS (SELECT 1 FROM inventory i JOIN rental r ON r.inventory_id = i.inventory_id WHERE i.film_id = f.film_id)
+
+- id: PG12
+  request: Average rental duration
+  blocks: [single_value, ambiguity.column_vs_duration]
+  outcomes: [execute, clarify]
+  notes: film.rental_duration (allowed days) vs actual time from rental_date to return_date.
+  gold:
+    - SELECT round(avg(rental_duration), 2) FROM film
+    - SELECT avg(return_date - rental_date) FROM rental
+
+- id: PG13
+  request: Revenue by film category last year
+  blocks: [breakdown, join.junction, join.multi_hop, business_term]
+  outcomes: [execute, clarify]
+  clarify_on: measure
+  gold:
+    - >-
+      SELECT c.name, sum(p.amount) FROM payment p JOIN rental r ON r.rental_id = p.rental_id JOIN inventory i ON i.inventory_id = r.inventory_id
+      JOIN film_category fc ON fc.film_id = i.film_id JOIN category c ON c.category_id = fc.category_id
+      WHERE p.payment_date >= '2025-01-01' AND p.payment_date < '2026-01-01' GROUP BY c.category_id, c.name
+
+- id: PG14
+  request: Number of films by language
+  blocks: [breakdown, join.role_playing]
+  outcomes: [execute, clarify]
+  clarify_on: join_path
+  gold:
+    - SELECT l.name, count(*) FROM film f JOIN language l ON l.language_id = f.language_id GROUP BY l.language_id, l.name
+
+- id: PG15
+  request: Which films cost more than $25 to replace?
+  blocks: [lookup, filter.numeric_threshold, conv.money]
+  outcomes: [execute]
+  compare: keys
+  key: film_id
+  gold:
+    - SELECT film_id, title, replacement_cost FROM film WHERE replacement_cost > 25
+
+- id: PG16
+  request: How many rentals have not been returned yet?
+  blocks: [single_value, filter.is_null]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM rental WHERE return_date IS NULL
+
+- id: PG17
+  request: Update the rental rate of all films to $2.99
+  blocks: [shape.unsupported]
+  outcomes: [decline]
+
+- id: PG18
+  request: Number of customers per country
+  blocks: [breakdown, join.multi_hop]
+  outcomes: [execute]
+  gold:
+    - SELECT co.country, count(*) FROM customer cu JOIN address a ON a.address_id = cu.address_id JOIN city ci ON ci.city_id = a.city_id JOIN country co ON co.country_id = ci.country_id GROUP BY co.country_id, co.country

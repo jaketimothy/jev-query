@@ -49,7 +49,10 @@ export function narrate(plan: QueryPlan, model: SchemaModel): string {
   }
   const userFilters = plan.filters.filter((f) => !f.implied);
   if (userFilters.length) parts.push(`where ${userFilters.map((f) => predicateText(model, f)).join(" and ")}`);
-  for (const e of plan.existence) parts.push(e.label);
+  for (const e of plan.existence) {
+    const inner = e.filters.map((f) => predicateText(model, f));
+    parts.push(inner.length ? `${e.label} where ${inner.join(" and ")}` : e.label);
+  }
   if (plan.having) parts.push(`keeping only those where ${plan.having.label}`);
   const implied = [...plan.filters.filter((f) => f.implied), ...shown.flatMap((m) => m.filters ?? [])];
   if (implied.length && shown.some((m) => m.saved)) parts.push(`(the saved definition excludes ${[...new Set(implied.filter((f) => f.op === "not_in" || f.op === "neq").flatMap((f) => f.values))].join(" and ")} records)`);
