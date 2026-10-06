@@ -7,3 +7,5 @@ eval-results*.jsonl
 .jev-cache/
 .scratch/
 .claude/settings.local.json
+.env
+.env.*
