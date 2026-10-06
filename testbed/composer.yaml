@@ -1,0 +1,27 @@
+# composer.yaml for the testbed.
+#
+# Deliberately near-empty: the eval measures what conventions get right on their own.
+# Only settings that make the run deterministic are set. The commented block shows
+# what a developer would add after reading `composer doctor` output.
+
+database:
+  schemas: [shop]
+
+time:
+  as_of: "2026-10-05T00:00:00Z"   # all gold SQL is computed against this instant
+  timezone: UTC
+  week_start: monday
+  last_period_means: calendar     # "last quarter" = previous calendar quarter
+
+soft_delete:
+  mode: current_state_only        # §2.2 behavioral conventions
+
+# --- optional overrides (leave commented for the zero-config eval run) ---------------
+# overrides:
+#   customers: { display: [first_name, last_name] }
+#   web_sessions.customer_id: { references: customers.id }        # inferred anyway by R2
+#   web_sessions.converted_order_id: { references: orders.id }    # inferred anyway by R2
+#   products.discontinued_at: { soft_delete: false }              # discontinued products are still products
+# relationships:
+#   default_paths:
+#     orders->regions: customers                                  # turns case D02 from clarify into execute

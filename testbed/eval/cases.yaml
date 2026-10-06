@@ -1,0 +1,568 @@
+# nlsql-testbed eval cases
+#
+# as_of: 2026-10-05T00:00:00Z (a Monday), timezone UTC, ISO weeks (Monday start).
+# The composer under test must run with this as_of.
+#
+# Fields
+#   id, request
+#   blocks:      building blocks / conventions exercised (spec §5 and §2)
+#   outcomes:    acceptable outcomes, any of: execute | clarify | decline
+#   clarify_on:  the decision a clarification should be about (when clarify is acceptable)
+#   compare:     how a composer result is compared to gold
+#                  unordered (default) - same multiset of rows
+#                  ordered             - same rows in the same order
+#                  keys                - some result column has exactly the gold key set (key: column name in gold)
+#   gold:        list of acceptable SQL answers; a result matching any one passes
+#   must_not:    SQL for a known-wrong answer (e.g. fan-out); a result matching it fails even if outcome is execute
+#   saved:       saved-query fixture that must be loaded first (eval/saved_fixtures.yaml); default none
+#   notes:       why the case exists
+#
+# Normalization in the harness: numbers rounded to 2 dp; intervals compared in seconds; money in dollars.
+
+cases:
+
+# ---------------------------------------------------------------- A. query shapes
+- id: A01
+  request: How many orders were placed last month?
+  blocks: [single_value, count_rows, time.last_month, conv.default_time_column]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM orders WHERE placed_at >= '2026-09-01' AND placed_at < '2026-10-01'
+
+- id: A02
+  request: List the 20 most recent orders over $500
+  blocks: [lookup, filter.numeric_threshold, op.gt, conv.money_cents, order.newest_first, limit.span]
+  outcomes: [execute]
+  compare: keys
+  key: order_number
+  gold:
+    - SELECT order_number, placed_at, round(total_cents / 100.0, 2) AS total FROM orders WHERE total_cents > 50000 ORDER BY placed_at DESC LIMIT 20
+
+- id: A03
+  request: Order count by channel this year
+  blocks: [breakdown, dimension.categorical, conv.check_constraint_values, time.this_year]
+  outcomes: [execute]
+  gold:
+    - SELECT channel, count(*) FROM orders WHERE placed_at >= '2026-01-01' AND placed_at < '2026-10-05' GROUP BY channel
+
+- id: A04
+  request: Monthly number of new customers in 2025
+  blocks: [trend, time_grain.month, time.specific_year, conv.created_at_as_event, conv.soft_delete_historical]
+  outcomes: [execute]
+  compare: ordered
+  notes: customers.created_at is the only timestamp on customers, so it is the business time. Historical question -> soft-deleted customers are included.
+  gold:
+    - SELECT date_trunc('month', created_at) AS month, count(*) FROM customers WHERE created_at >= '2025-01-01' AND created_at < '2026-01-01' GROUP BY 1 ORDER BY 1
+
+- id: A05
+  request: How many customers do we have?
+  blocks: [single_value, conv.soft_delete_current]
+  outcomes: [execute]
+  notes: Current-state question -> soft-deleted customers excluded.
+  gold:
+    - SELECT count(*) FROM customers WHERE deleted_at IS NULL
+  must_not:
+    - SELECT count(*) FROM customers
+
+- id: A06
+  request: Average order value by customer segment
+  blocks: [breakdown, agg.avg, conv.enum_values, join.fk, conv.money_cents]
+  outcomes: [execute]
+  gold:
+    - SELECT c.segment, round(avg(o.total_cents) / 100.0, 2) FROM orders o JOIN customers c ON c.id = o.customer_id GROUP BY c.segment
+    - SELECT c.segment, round(avg(o.subtotal_cents) / 100.0, 2) FROM orders o JOIN customers c ON c.id = o.customer_id GROUP BY c.segment
+
+# ---------------------------------------------------------------- B. filters
+- id: B01
+  request: How many orders were shipped to Utah last quarter?
+  blocks: [single_value, join.role_playing, filter.value_link, time.last_quarter, time.date_column]
+  outcomes: [execute, clarify]
+  clarify_on: time_column
+  notes: '"shipped to" selects the shipping address (not billing). The period may reasonably bind to shipped_at or placed_at.'
+  gold:
+    - SELECT count(*) FROM orders o JOIN addresses a ON a.id = o.shipping_address_id WHERE a.state_code = 'UT' AND o.shipped_at >= '2026-07-01' AND o.shipped_at < '2026-10-01'
+    - SELECT count(*) FROM orders o JOIN addresses a ON a.id = o.shipping_address_id WHERE a.state_code = 'UT' AND o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01'
+  must_not:
+    - SELECT count(*) FROM orders o JOIN addresses a ON a.id = o.billing_address_id WHERE a.state_code = 'UT' AND o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01'
+
+- id: B02
+  request: Total order value from customers in the West region in 2025, excluding cancelled orders
+  blocks: [single_value, agg.sum, filter.value_link, filter.exclude, time.specific_year, trap.value_collision]
+  outcomes: [execute]
+  notes: '"West" must link to regions.name, not to company names like "West Ridge Supply Co" or "Westbrook ...".'
+  gold:
+    - SELECT round(sum(o.total_cents) / 100.0, 2) FROM orders o JOIN customers c ON c.id = o.customer_id JOIN regions r ON r.id = c.region_id WHERE r.name = 'West' AND o.status <> 'cancelled' AND o.placed_at >= '2025-01-01' AND o.placed_at < '2026-01-01'
+
+- id: B03
+  request: Which customers from West Ridge Supply Co placed orders this year?
+  blocks: [lookup, filter.text_exact, existence.exists, time.this_year]
+  outcomes: [execute]
+  compare: keys
+  key: id
+  gold:
+    - SELECT c.id, c.first_name, c.last_name, c.email FROM customers c WHERE c.company_name = 'West Ridge Supply Co' AND EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05')
+
+- id: B04
+  request: List orders from last month with at least 3 different products
+  blocks: [lookup, having.count, op.gte, time.last_month]
+  outcomes: [execute]
+  compare: keys
+  key: order_number
+  gold:
+    - SELECT o.order_number FROM orders o JOIN order_items i ON i.order_id = o.id WHERE o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01' GROUP BY o.id, o.order_number HAVING count(DISTINCT i.product_id) >= 3
+
+- id: B05
+  request: Which products cost less than $20?
+  blocks: [lookup, filter.numeric_threshold, op.lt, conv.nonadditive_measure, conv.money_cents]
+  outcomes: [execute]
+  compare: keys
+  key: sku
+  gold:
+    - SELECT sku, name, round(list_price_cents / 100.0, 2) FROM products WHERE list_price_cents < 2000
+
+- id: B06
+  request: Customers whose company name contains Granite
+  blocks: [lookup, filter.text_contains]
+  outcomes: [execute]
+  compare: keys
+  key: id
+  gold:
+    - SELECT id, company_name FROM customers WHERE company_name ILIKE '%Granite%' AND deleted_at IS NULL
+    - SELECT id, company_name FROM customers WHERE company_name ILIKE '%Granite%'
+
+- id: B07
+  request: How many support tickets are unassigned?
+  blocks: [single_value, filter.is_null, join.role_playing]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM support_tickets WHERE assigned_to_employee_id IS NULL
+
+- id: B08
+  request: How many customers have opted in to marketing?
+  blocks: [single_value, filter.boolean, conv.soft_delete_current]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM customers WHERE marketing_opt_in AND deleted_at IS NULL
+
+- id: B09
+  request: How many orders between $100 and $250 were placed last week?
+  blocks: [single_value, filter.between, conv.money_cents, time.last_week]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM orders WHERE total_cents BETWEEN 10000 AND 25000 AND placed_at >= '2026-09-28' AND placed_at < '2026-10-05'
+
+- id: B10
+  request: How many sessions came from mobile devices in September?
+  blocks: [single_value, filter.value_link, conv.pg_stats_values, time.specific_month, conv.no_comments]
+  outcomes: [execute]
+  notes: device_type has no CHECK constraint; values come from pg_stats.most_common_vals. Year inferred as most recent past September.
+  gold:
+    - SELECT count(*) FROM web_sessions WHERE device_type = 'mobile' AND started_at >= '2026-09-01' AND started_at < '2026-10-01'
+
+# ---------------------------------------------------------------- C. time
+- id: C01
+  request: How many orders did we get last quarter?
+  blocks: [single_value, time.last_quarter, ambiguity.calendar_vs_trailing]
+  outcomes: [execute, clarify]
+  clarify_on: period
+  gold:
+    - SELECT count(*) FROM orders WHERE placed_at >= '2026-07-01' AND placed_at < '2026-10-01'
+
+- id: C02
+  request: Number of orders per week for the last 8 weeks
+  blocks: [trend, time_grain.week, time.trailing_n_weeks, span_role.time_amount]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT date_trunc('week', placed_at) AS week, count(*) FROM orders WHERE placed_at >= '2026-08-10' AND placed_at < '2026-10-05' GROUP BY 1 ORDER BY 1
+
+- id: C03
+  request: Year-to-date order total compared with the same period last year
+  blocks: [single_value, derived.compare_periods, filter_agg, time.ytd]
+  outcomes: [execute]
+  gold:
+    - >-
+      SELECT round(sum(total_cents) FILTER (WHERE placed_at >= '2026-01-01' AND placed_at < '2026-10-05') / 100.0, 2) AS this_year,
+             round(sum(total_cents) FILTER (WHERE placed_at >= '2025-01-01' AND placed_at < '2025-10-05') / 100.0, 2) AS last_year
+      FROM orders WHERE placed_at >= '2025-01-01' AND placed_at < '2026-10-05'
+
+- id: C04
+  request: How many orders were delivered in August 2026?
+  blocks: [single_value, time.date_column, time.specific_month]
+  outcomes: [execute]
+  notes: '"delivered" selects delivered_at as the time column, not the default placed_at.'
+  gold:
+    - SELECT count(*) FROM orders WHERE delivered_at >= '2026-08-01' AND delivered_at < '2026-09-01'
+  must_not:
+    - SELECT count(*) FROM orders WHERE placed_at >= '2026-08-01' AND placed_at < '2026-09-01'
+
+- id: C05
+  request: Average time to first response on support tickets last month, by priority
+  blocks: [breakdown, conv.duration_pair, agg.avg, conv.enum_values, time.last_month]
+  outcomes: [execute]
+  notes: Duration measures are enumerated from ordered timestamp pairs on the same row (opened_at -> first_response_at).
+  gold:
+    - SELECT priority, avg(first_response_at - opened_at) FROM support_tickets WHERE opened_at >= '2026-09-01' AND opened_at < '2026-10-01' GROUP BY priority
+
+# ---------------------------------------------------------------- D. joins
+- id: D01
+  request: Order total by customer region last month
+  blocks: [breakdown, join.multi_hop, time.last_month]
+  outcomes: [execute]
+  gold:
+    - SELECT r.name, round(sum(o.total_cents) / 100.0, 2) FROM orders o JOIN customers c ON c.id = o.customer_id JOIN regions r ON r.id = c.region_id WHERE o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01' GROUP BY r.name
+
+- id: D02
+  request: Number of orders by region last month
+  blocks: [breakdown, join.ambiguous_path]
+  outcomes: [clarify]
+  clarify_on: join_path
+  notes: orders reach regions through customers or through the fulfilling warehouse; 27.6% of orders differ. Must ask.
+
+- id: D03
+  request: Orders by fulfillment warehouse region last quarter, including regions with no orders
+  blocks: [breakdown, join.left, flag.include_empty_groups, conv.coalesce_zero]
+  outcomes: [execute]
+  notes: South has no warehouse and must appear with 0.
+  gold:
+    - SELECT r.name, count(o.id) FROM regions r LEFT JOIN warehouses w ON w.region_id = r.id LEFT JOIN orders o ON o.fulfilled_from_warehouse_id = w.id AND o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01' GROUP BY r.name
+
+- id: D04
+  request: How many open tickets are assigned to Dana Whitaker?
+  blocks: [single_value, join.role_playing, filter.value_link]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM support_tickets t JOIN employees e ON e.id = t.assigned_to_employee_id WHERE e.full_name = 'Dana Whitaker' AND t.status = 'open'
+
+- id: D05
+  request: How many phone tickets did each support agent create this year?
+  blocks: [breakdown, join.role_playing, filter.value_link]
+  outcomes: [execute]
+  notes: '"create" selects created_by_employee_id, not assigned_to_employee_id.'
+  gold:
+    - SELECT e.full_name, count(*) FROM support_tickets t JOIN employees e ON e.id = t.created_by_employee_id WHERE t.channel = 'phone' AND t.opened_at >= '2026-01-01' AND t.opened_at < '2026-10-05' GROUP BY e.id, e.full_name
+  must_not:
+    - SELECT e.full_name, count(*) FROM support_tickets t JOIN employees e ON e.id = t.assigned_to_employee_id WHERE t.channel = 'phone' AND t.opened_at >= '2026-01-01' AND t.opened_at < '2026-10-05' GROUP BY e.id, e.full_name
+
+- id: D06
+  request: Which landing pages led to the most orders last month?
+  blocks: [ranking, conv.inferred_fk, limit.default]
+  outcomes: [execute]
+  compare: ordered
+  notes: web_sessions has no FK constraints; converted_order_id -> orders.id is inferred from the name.
+  gold:
+    - SELECT s.landing_page, count(*) FROM web_sessions s JOIN orders o ON o.id = s.converted_order_id WHERE o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01' GROUP BY s.landing_page ORDER BY 2 DESC, 1 LIMIT 10
+    - SELECT s.landing_page, count(*) FROM web_sessions s WHERE s.converted_order_id IS NOT NULL AND s.started_at >= '2026-09-01' AND s.started_at < '2026-10-01' GROUP BY s.landing_page ORDER BY 2 DESC, 1 LIMIT 10
+
+- id: D07
+  request: Which ultralight products sold more than 50 units this year?
+  blocks: [lookup, join.junction, existence.exists, having.sum, filter.value_link]
+  outcomes: [execute]
+  compare: keys
+  key: sku
+  notes: '"ultralight" is a tag value reached through the product_tags junction.'
+  gold:
+    - >-
+      SELECT p.sku, p.name, sum(i.quantity) FROM products p JOIN order_items i ON i.product_id = p.id JOIN orders o ON o.id = i.order_id
+      WHERE o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05'
+        AND EXISTS (SELECT 1 FROM product_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.product_id = p.id AND t.name = 'ultralight')
+      GROUP BY p.id, p.sku, p.name HAVING sum(i.quantity) > 50
+
+- id: D08
+  request: Number of website sessions by customer segment
+  blocks: [breakdown, conv.inferred_fk, join.nullable_fk]
+  outcomes: [execute]
+  notes: Anonymous sessions (customer_id null) drop out of an inner join; an extra "unknown" row is also acceptable.
+  gold:
+    - SELECT c.segment, count(*) FROM web_sessions s JOIN customers c ON c.id = s.customer_id GROUP BY c.segment
+    - SELECT c.segment, count(*) FROM web_sessions s LEFT JOIN customers c ON c.id = s.customer_id GROUP BY c.segment
+
+# ---------------------------------------------------------------- E. aggregation traps
+- id: E01
+  request: Total order value by product category last quarter
+  blocks: [breakdown, trap.fan_out, measure.grain_switch]
+  outcomes: [execute, clarify]
+  clarify_on: measure
+  notes: Order totals cannot be split by product. Acceptable answers use line totals (product sales) or ask. The joined order total is the fanned answer.
+  gold:
+    - SELECT c.name, round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id WHERE o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01' GROUP BY c.name
+  must_not:
+    - SELECT c.name, round(sum(o.total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id WHERE o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01' GROUP BY c.name
+
+- id: E02
+  request: Units sold and amount paid per month this year
+  blocks: [trend, trap.chasm, measure.pre_aggregate, filter.value_link]
+  outcomes: [execute]
+  compare: ordered
+  notes: order_items and payments are both children of orders; each measure must be aggregated at its own grain before combining.
+  gold:
+    - >-
+      WITH u AS (SELECT date_trunc('month', o.placed_at) m, sum(i.quantity) units FROM orders o JOIN order_items i ON i.order_id = o.id
+                 WHERE o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05' GROUP BY 1),
+           p AS (SELECT date_trunc('month', o.placed_at) m, round(sum(p.amount_cents) / 100.0, 2) paid FROM orders o JOIN payments p ON p.order_id = o.id
+                 WHERE p.status = 'captured' AND o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05' GROUP BY 1)
+      SELECT u.m, u.units, p.paid FROM u LEFT JOIN p ON p.m = u.m ORDER BY u.m
+  must_not:
+    - >-
+      SELECT date_trunc('month', o.placed_at), sum(i.quantity), round(sum(p.amount_cents) / 100.0, 2) FROM orders o JOIN order_items i ON i.order_id = o.id
+      JOIN payments p ON p.order_id = o.id WHERE p.status = 'captured' AND o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05' GROUP BY 1 ORDER BY 1
+
+- id: E03
+  request: How many customers placed an order last month?
+  blocks: [single_value, agg.count_distinct]
+  outcomes: [execute]
+  gold:
+    - SELECT count(DISTINCT customer_id) FROM orders WHERE placed_at >= '2026-09-01' AND placed_at < '2026-10-01'
+  must_not:
+    - SELECT count(*) FROM orders WHERE placed_at >= '2026-09-01' AND placed_at < '2026-10-01'
+
+- id: E04
+  request: Average review rating by brand
+  blocks: [breakdown, agg.avg, conv.nonadditive_measure, conv.pg_stats_values]
+  outcomes: [execute]
+  gold:
+    - SELECT p.brand, round(avg(r.rating), 2) FROM reviews r JOIN products p ON p.id = r.product_id GROUP BY p.brand
+
+- id: E05
+  request: How much inventory do we have right now?
+  blocks: [single_value, conv.snapshot_table, measure.semi_additive]
+  outcomes: [execute]
+  notes: Snapshot tables are summed only within the latest snapshot date.
+  gold:
+    - SELECT sum(on_hand_units) FROM inventory_snapshots WHERE snapshot_date = (SELECT max(snapshot_date) FROM inventory_snapshots)
+  must_not:
+    - SELECT sum(on_hand_units) FROM inventory_snapshots
+
+- id: E06
+  request: Units on hand by warehouse at the start of each month this year
+  blocks: [trend, conv.snapshot_table, dimension.fk_display_name]
+  outcomes: [execute]
+  gold:
+    - SELECT s.snapshot_date, w.name, sum(s.on_hand_units) FROM inventory_snapshots s JOIN warehouses w ON w.id = s.warehouse_id WHERE s.snapshot_date >= '2026-01-01' AND s.snapshot_date < '2026-10-05' GROUP BY 1, 2
+
+- id: E07
+  request: What is the total list price of all our products?
+  blocks: [grammar_mask.sum_nonadditive]
+  outcomes: [clarify]
+  clarify_on: measure_agg
+  notes: Summing a non-additive measure is masked out; the composer should offer average/min/max instead.
+
+# ---------------------------------------------------------------- F. existence and HAVING
+- id: F01
+  request: How many customers have never placed an order?
+  blocks: [single_value, existence.not_exists, conv.soft_delete_current]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM customers c WHERE c.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id)
+
+- id: F02
+  request: Which products have never been reviewed?
+  blocks: [lookup, existence.not_exists]
+  outcomes: [execute]
+  compare: keys
+  key: sku
+  gold:
+    - SELECT p.sku, p.name FROM products p WHERE NOT EXISTS (SELECT 1 FROM reviews r WHERE r.product_id = p.id)
+
+- id: F03
+  request: Customers who placed more than 10 orders in 2025
+  blocks: [lookup, having.count, op.gt, span_role.threshold_group]
+  outcomes: [execute]
+  compare: keys
+  key: id
+  gold:
+    - SELECT c.id, c.first_name, c.last_name, count(*) FROM customers c JOIN orders o ON o.customer_id = c.id WHERE o.placed_at >= '2025-01-01' AND o.placed_at < '2026-01-01' GROUP BY c.id HAVING count(*) > 10
+
+- id: F04
+  request: Categories with over $100,000 in product sales last year
+  blocks: [lookup, having.sum, conv.money_cents, span_role.threshold_group]
+  outcomes: [execute]
+  compare: keys
+  key: name
+  gold:
+    - SELECT c.name, round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id WHERE o.placed_at >= '2025-01-01' AND o.placed_at < '2026-01-01' GROUP BY c.name HAVING sum(i.line_total_cents) > 10000000
+
+- id: F05
+  request: How many customers in the West didn't order anything in September?
+  blocks: [single_value, existence.not_exists, existence.scoping, conv.soft_delete_current]
+  outcomes: [execute]
+  notes: Region filter is outside the subquery (customer column); the month filter is inside (orders column).
+  gold:
+    - >-
+      SELECT count(*) FROM customers c JOIN regions r ON r.id = c.region_id WHERE r.name = 'West' AND c.deleted_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01')
+
+- id: F06
+  request: How many orders were refunded?
+  blocks: [ambiguity.status_vs_related_rows]
+  outcomes: [clarify]
+  clarify_on: filter
+  notes: status = 'refunded' (283 full refunds) vs any row in refunds (855 incl. partial). Must ask.
+
+# ---------------------------------------------------------------- G. ranking
+- id: G01
+  request: Top 5 products by units sold last quarter
+  blocks: [ranking, agg.sum, limit.span, order.high_first]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT p.name, sum(i.quantity) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id WHERE o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01' GROUP BY p.id, p.name ORDER BY 2 DESC, p.name LIMIT 5
+
+- id: G02
+  request: Top 3 products by units sold in each category this year
+  blocks: [ranking, per_group_top_n, window.row_number]
+  outcomes: [execute]
+  gold:
+    - >-
+      SELECT category, product, units FROM (
+        SELECT c.name category, p.name product, sum(i.quantity) units,
+               row_number() OVER (PARTITION BY c.name ORDER BY sum(i.quantity) DESC, p.name) rn
+        FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id
+        WHERE o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05' GROUP BY c.name, p.id, p.name) t
+      WHERE rn <= 3
+
+- id: G03
+  request: Which customer spent the most last year?
+  blocks: [ranking, flag.single_best, entity_display]
+  outcomes: [execute]
+  compare: keys
+  key: id
+  gold:
+    - SELECT c.id, c.first_name, c.last_name, round(sum(o.total_cents) / 100.0, 2) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.placed_at >= '2025-01-01' AND o.placed_at < '2026-01-01' GROUP BY c.id ORDER BY 4 DESC LIMIT 1
+
+- id: G04
+  request: Which brand had the fewest orders this year?
+  blocks: [ranking, order.low_first, flag.single_best, agg.count_distinct, trap.fan_out]
+  outcomes: [execute]
+  compare: keys
+  key: brand
+  notes: Orders counted through order_items must be count(DISTINCT order id).
+  gold:
+    - SELECT p.brand, count(DISTINCT o.id) FROM orders o JOIN order_items i ON i.order_id = o.id JOIN products p ON p.id = i.product_id WHERE o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05' GROUP BY p.brand ORDER BY 2 ASC LIMIT 1
+
+- id: G05
+  request: Most recent order for each enterprise customer
+  blocks: [lookup, distinct_on, filter.value_link]
+  outcomes: [execute]
+  compare: keys
+  key: order_number
+  gold:
+    - SELECT DISTINCT ON (c.id) c.id, o.order_number, o.placed_at FROM orders o JOIN customers c ON c.id = o.customer_id WHERE c.segment = 'enterprise' ORDER BY c.id, o.placed_at DESC
+
+# ---------------------------------------------------------------- H. derived calculations
+- id: H01
+  request: Monthly order total this year with month-over-month growth
+  blocks: [trend, derived.pct_change_vs_previous, window.lag]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - >-
+      SELECT m, total, round((total / NULLIF(lag(total) OVER (ORDER BY m), 0) - 1) * 100, 2) AS pct_change FROM (
+        SELECT date_trunc('month', placed_at) m, round(sum(total_cents) / 100.0, 2) total FROM orders
+        WHERE placed_at >= '2026-01-01' AND placed_at < '2026-10-05' GROUP BY 1) t ORDER BY m
+    - >-
+      SELECT m, total, round(total / NULLIF(lag(total) OVER (ORDER BY m), 0) - 1, 4) AS pct_change FROM (
+        SELECT date_trunc('month', placed_at) m, round(sum(total_cents) / 100.0, 2) total FROM orders
+        WHERE placed_at >= '2026-01-01' AND placed_at < '2026-10-05' GROUP BY 1) t ORDER BY m
+
+- id: H02
+  request: Share of orders by channel last year
+  blocks: [breakdown, derived.share_of_total]
+  outcomes: [execute]
+  gold:
+    - SELECT channel, count(*), round(count(*) * 100.0 / sum(count(*)) OVER (), 2) FROM orders WHERE placed_at >= '2025-01-01' AND placed_at < '2026-01-01' GROUP BY channel
+    - SELECT channel, count(*), round(count(*) * 1.0 / sum(count(*)) OVER (), 4) FROM orders WHERE placed_at >= '2025-01-01' AND placed_at < '2026-01-01' GROUP BY channel
+
+- id: H03
+  request: Running total of new customers by month in 2026
+  blocks: [trend, derived.running_total, conv.soft_delete_historical]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT m, n, sum(n) OVER (ORDER BY m) FROM (SELECT date_trunc('month', created_at) m, count(*) n FROM customers WHERE created_at >= '2026-01-01' AND created_at < '2026-10-05' GROUP BY 1) t ORDER BY m
+
+# ---------------------------------------------------------------- I. boundaries
+- id: I01
+  request: Delete all cancelled orders
+  blocks: [shape.unsupported, flag.is_write]
+  outcomes: [decline]
+
+- id: I02
+  request: Total product sales for Camping, including all its subcategories, last month
+  blocks: [v2.hierarchy, trap.parent_category_empty]
+  outcomes: [decline, clarify, execute]
+  notes: '"Camping" is a parent category with no products of its own; filtering category name = Camping returns nothing. v1 should decline or ask; a correct execute (v2 behavior) also passes.'
+  gold:
+    - SELECT round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id JOIN categories parent ON parent.id = c.parent_id WHERE parent.name = 'Camping' AND o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01'
+  must_not:
+    - SELECT round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id WHERE c.name = 'Camping' AND o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01'
+
+- id: I03
+  request: Profit margin by brand
+  blocks: [v2.ad_hoc_arithmetic]
+  outcomes: [decline, clarify]
+  notes: Needs a formula over two columns; not composable in v1 without a saved definition.
+
+- id: I04
+  request: How many red products do we sell?
+  blocks: [v2.jsonb_path]
+  outcomes: [decline, clarify]
+  notes: Color lives in products.attributes (jsonb).
+
+- id: I05
+  request: What's the weather in Denver?
+  blocks: [shape.unsupported]
+  outcomes: [decline]
+
+# ---------------------------------------------------------------- J. saved-query reuse
+- id: J01
+  request: Revenue by customer region last month
+  blocks: [saved.none, measure.undefined_business_term]
+  outcomes: [clarify]
+  clarify_on: measure
+  notes: Empty saved store. "Revenue" matches no column; candidates are order totals (incl. tax/shipping) and line totals, with or without cancelled/refunded orders. Must ask once.
+
+- id: J02
+  request: Revenue by customer region last month
+  saved: revenue_v1
+  blocks: [saved.fragment_reuse, breakdown]
+  outcomes: [execute]
+  gold:
+    - SELECT r.name, round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id JOIN regions r ON r.id = c.region_id WHERE o.status NOT IN ('cancelled', 'refunded') AND o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01' GROUP BY r.name
+
+- id: J03
+  request: What was our revenue in Q2 2026?
+  saved: revenue_v1
+  blocks: [saved.fragment_reuse, time.specific_quarter]
+  outcomes: [execute]
+  gold:
+    - SELECT round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.status NOT IN ('cancelled', 'refunded') AND o.placed_at >= '2026-04-01' AND o.placed_at < '2026-07-01'
+
+- id: J04
+  request: Top 5 categories by revenue this year
+  saved: revenue_v1
+  blocks: [saved.fragment_reuse, ranking]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT c.name, round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN products p ON p.id = i.product_id JOIN categories c ON c.id = p.category_id WHERE o.status NOT IN ('cancelled', 'refunded') AND o.placed_at >= '2026-01-01' AND o.placed_at < '2026-10-05' GROUP BY c.name ORDER BY 2 DESC LIMIT 5
+
+- id: J05
+  request: Show me how sales did in each region last month
+  saved: revenue_by_customer_region_last_month
+  blocks: [saved.plan_match, slot.rebind]
+  outcomes: [execute]
+  notes: Paraphrase of an accepted saved query; should match the whole plan, reuse its join choice (customer region) without re-asking, and rebind the period slot.
+  gold:
+    - SELECT r.name, round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id JOIN regions r ON r.id = c.region_id WHERE o.status NOT IN ('cancelled', 'refunded') AND o.placed_at >= '2026-09-01' AND o.placed_at < '2026-10-01' GROUP BY r.name
+
+- id: J06
+  request: Same thing but for the East region only, last quarter
+  saved: revenue_by_customer_region_last_month
+  context: J05
+  blocks: [saved.plan_match, slot.rebind, filter.value_link, conversation.follow_up]
+  outcomes: [execute]
+  notes: Follow-up turn. Keeps the plan from J05, adds a region filter, rebinds the period.
+  gold:
+    - SELECT r.name, round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id JOIN regions r ON r.id = c.region_id WHERE r.name = 'East' AND o.status NOT IN ('cancelled', 'refunded') AND o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01' GROUP BY r.name
+    - SELECT round(sum(i.line_total_cents) / 100.0, 2) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id JOIN regions r ON r.id = c.region_id WHERE r.name = 'East' AND o.status NOT IN ('cancelled', 'refunded') AND o.placed_at >= '2026-07-01' AND o.placed_at < '2026-10-01'

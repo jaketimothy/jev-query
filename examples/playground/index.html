@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>jev-query playground</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1f23; --muted: #6b6f76; --line: #e3e1da;
+    --accent: #2f5bd3; --accent-ink: #ffffff; --ok: #1f8a4c; --warn: #b26b00; --bad: #b3261e;
+    --code: #f1efe8; --bar: #2f5bd3; --bar-bg: #e8e6df; --chip: #eef1fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141518; --panel: #1c1e22; --ink: #e9e7e2; --muted: #9a9ea6; --line: #2c2f35;
+      --accent: #7d9bff; --accent-ink: #0d1020; --ok: #5fd08f; --warn: #f0b04a; --bad: #ff7a70;
+      --code: #23262b; --bar: #7d9bff; --bar-bg: #2c2f35; --chip: #232a3d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 1100px; margin: 0 auto; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 0 16px 120px; display: grid; grid-template-columns: 1fr 260px; gap: 20px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } aside { order: 2; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  .req { font-weight: 600; margin-bottom: 6px; }
+  .narr { margin: 6px 0 10px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--muted); }
+  .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.bad { color: var(--bad); }
+  details { margin: 6px 0; } summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  pre { background: var(--code); border-radius: 8px; padding: 10px; overflow-x: auto; font-size: 12.5px; margin: 8px 0; }
+  .tablewrap { overflow-x: auto; max-height: 360px; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--panel); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .opts { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .opt { text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; }
+  .opt:hover { border-color: var(--accent); }
+  .opt small { display: block; color: var(--muted); }
+  .prov { display: grid; grid-template-columns: minmax(110px, 180px) 1fr; gap: 4px 12px; font-size: 12.5px; }
+  .prov .k { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 8px; background: var(--bar-bg); border-radius: 4px; overflow: hidden; margin-top: 5px; }
+  .bar i { display: block; height: 100%; background: var(--bar); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  button.small { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.small:hover { border-color: var(--accent); }
+  form.ask { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 18px 16px 16px; }
+  form.ask .inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
+  form.ask input[type=text] { flex: 1; min-width: 0; font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  form.ask button { font: inherit; padding: 12px 18px; border-radius: 12px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  label.follow { font-size: 12px; color: var(--muted); display: flex; gap: 4px; align-items: center; white-space: nowrap; }
+  aside h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
+  aside li { font-size: 13px; margin: 3px 0; }
+  aside ul { padding-left: 16px; margin: 0; }
+  .sugg { display: flex; flex-direction: column; gap: 6px; }
+  .sugg button { text-align: left; font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+  .empty { color: var(--muted); padding: 30px 0; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>jev-query playground</h1>
+  <span class="sub" id="sub">loading…</span>
+</header>
+<main>
+  <section id="feed"><div class="empty">Ask a question about the data. Every answer shows the SQL, the plan in plain English, and the decisions behind it.</div></section>
+  <aside>
+    <h2>Try</h2>
+    <div class="sugg" id="sugg"></div>
+    <h2>Saved definitions</h2>
+    <ul id="saved"><li class="sub">none yet</li></ul>
+    <h2>Tables</h2>
+    <ul id="tables"></ul>
+  </aside>
+</main>
+<form class="ask" id="ask">
+  <div class="inner">
+    <input type="text" id="q" placeholder="e.g. Top 5 products by units sold last quarter" autocomplete="off" />
+    <label class="follow"><input type="checkbox" id="follow" /> follow-up</label>
+    <button type="submit">Ask</button>
+  </div>
+</form>
+<script>
+const $ = (s) => document.querySelector(s);
+const feed = $("#feed");
+let last = null;
+const SUGG = [
+  "How many orders were placed last month?",
+  "Order total by customer region last month",
+  "Number of orders by region last month",
+  "Top 3 products by units sold in each category this year",
+  "Monthly order total this year with month-over-month growth",
+  "Customers who placed more than 10 orders in 2025",
+  "Revenue by customer region last month",
+  "How many orders were refunded?",
+  "What is the total list price of all our products?",
+];
+for (const s of SUGG) { const b = document.createElement("button"); b.textContent = s; b.onclick = () => ask(s); $("#sugg").append(b); }
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+async function info() {
+  const i = await api("/api/info");
+  $("#sub").textContent = `oracle: ${i.oracle} · ${i.tables.length} tables`;
+  $("#tables").innerHTML = i.tables.map((t) => `<li title="${esc(t.description)}">${esc(t.name)} <span class="sub">${Math.round(t.rows).toLocaleString()}</span></li>`).join("");
+  $("#saved").innerHTML = i.saved.length ? i.saved.map((s) => `<li>${esc(s.kind)}: ${esc(s.name ?? s.id)}</li>`).join("") : `<li class="sub">none yet</li>`;
+}
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function ask(q) {
+  $("#q").value = "";
+  const prev = $("#follow").checked && last ? last.id : undefined;
+  const card = pending(q);
+  try { render(card, q, await api("/api/ask", { request: q, previous: prev })); } catch (e) { card.innerHTML += `<div class="err">${esc(e.message)}</div>`; }
+}
+function pending(q) {
+  if (feed.querySelector(".empty")) feed.innerHTML = "";
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<div class="req">${esc(q)}</div><div class="sub">composing…</div>`;
+  feed.prepend(card);
+  return card;
+}
+function render(card, q, { result, data }) {
+  if (result.outcome === "execute") last = result;
+  const conf = result.confidence ?? 0;
+  const cls = result.outcome === "execute" ? "ok" : result.outcome === "clarify" ? "warn" : "bad";
+  const rounds = (result.rounds || []).map((r) => `${r.round}: ${r.questions}q`).join(" · ");
+  let h = `<div class="req">${esc(q)}</div>
+    <div class="chips"><span class="chip ${cls}">${result.outcome}</span><span class="chip">confidence ${conf.toFixed(2)}</span>${rounds ? `<span class="chip">${rounds}</span>` : ""}${result.reused?.measures?.length ? `<span class="chip ok">uses saved: ${esc(result.reused.measures.join(", "))}</span>` : ""}</div>`;
+  if (result.narrative) h += `<div class="narr">${esc(result.narrative)}</div>`;
+  if (result.banner) h += `<div class="chip warn">${esc(result.banner)}</div>`;
+  if (result.reason) h += `<div class="narr">${esc(result.reason)}</div>`;
+  if (result.clarification) {
+    h += `<div class="narr"><b>${esc(result.clarification.question)}</b></div><div class="opts">` +
+      result.clarification.options.map((o) => `<button class="opt" data-c="${esc(result.clarification.id)}" data-o="${esc(o.key)}">${esc(o.label)}<small>${esc(o.consequence)}</small></button>`).join("") + `</div>`;
+  }
+  if (data?.rows) {
+    const cols = data.columns?.length ? data.columns.map((c) => c.name) : Object.keys(data.rows[0] ?? {});
+    h += `<div class="tablewrap"><table><thead><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>` +
+      data.rows.slice(0, 200).map((r) => `<tr>${cols.map((c) => { const v = r[c]; const num = typeof v === "number" || /^-?\d+(\.\d+)?$/.test(String(v)); return `<td class="${num ? "num" : ""}">${esc(fmt(v))}</td>`; }).join("")}</tr>`).join("") +
+      `</tbody></table></div><div class="sub">${data.rows.length} row${data.rows.length === 1 ? "" : "s"}</div>`;
+  }
+  if (data?.error) h += `<div class="err">${esc(data.error)}</div>`;
+  if (result.sql) h += `<details><summary>SQL</summary><pre>${esc(result.sql)}\n-- params: ${esc(JSON.stringify(result.params))}</pre></details>`;
+  const prov = Object.entries(result.provenance || {});
+  if (prov.length) {
+    h += `<details><summary>Decisions (${prov.length})</summary><div class="prov">` + prov.map(([k, d]) =>
+      `<div class="k" title="${esc(k)}">${esc(d.about)} <span class="sub">· ${esc(d.by)}</span></div><div>${esc(typeof d.value === "string" ? d.value : JSON.stringify(d.value))}<div class="bar"><i style="width:${Math.round((d.confidence || 0) * 100)}%"></i></div></div>`).join("") + `</div></details>`;
+  }
+  if (result.outcome === "execute") h += `<div class="actions"><button class="small" data-accept="${esc(result.id)}">Save as definition…</button><button class="small" data-follow="1">Ask a follow-up</button></div>`;
+  card.innerHTML = h;
+  card.querySelectorAll(".opt").forEach((b) => (b.onclick = async () => {
+    const label = `${q}  →  ${b.firstChild.textContent.trim()}`;
+    const c2 = pending(label);
+    try { render(c2, label, await api("/api/answer", { clarification: b.dataset.c, option: b.dataset.o })); } catch (e) { c2.innerHTML += `<div class="err">${esc(e.message)}</div>`; }
+  }));
+  card.querySelectorAll("[data-accept]").forEach((b) => (b.onclick = async () => {
+    const name = prompt("Name this definition (e.g. revenue). Leave empty to save only the question.") ?? "";
+    await api("/api/accept", { result: b.dataset.accept, name });
+    b.textContent = name ? `Saved as “${name}”` : "Saved"; b.disabled = true; info();
+  }));
+  card.querySelectorAll("[data-follow]").forEach((b) => (b.onclick = () => { $("#follow").checked = true; $("#q").focus(); }));
+}
+const fmt = (v) => (v && typeof v === "object" ? JSON.stringify(v) : typeof v === "string" && /^\d{4}-\d\d-\d\dT00:00:00(\.000)?Z$/.test(v) ? v.slice(0, 10) : v);
+$("#ask").onsubmit = (e) => { e.preventDefault(); const q = $("#q").value.trim(); if (q) ask(q); };
+info();
+</script>
+</body>
+</html>
