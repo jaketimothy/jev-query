@@ -1,0 +1,4 @@
+# Zero-config benchmark: only what makes the run deterministic.
+time:
+  as_of: "1998-05-07T00:00:00Z"
+  timezone: UTC

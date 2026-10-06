@@ -181,7 +181,7 @@ const OP_CRITERIA = {
   between_high: "The upper end of a range ('between 100 and 500': 500).",
 };
 
-const NULL_TRIGGER = /\b(missing|empty|blank|null|without|no\s+\w+|unknown|un[a-z]+ed|not set|lacking|none)\b/i;
+const NULL_TRIGGER = /\b(missing|empty|blank|null|without|no\s+\w+|unknown|un[a-z]+ed|not set|lacking|none|not (yet )?(been )?[a-z]+(ed|en)|yet to|still open|outstanding)\b/i;
 
 const choice = (instructions: ChoiceQuestion["instructions"], criteria: Record<string, string>): ChoiceQuestion => ({ type: "choice", instructions, criteria });
 const noul = (instructions: NoulQuestion["instructions"], criteria?: NoulQuestion["criteria"]): NoulQuestion => ({ type: "noul", instructions, ...(criteria ? { criteria } : {}) });
@@ -474,7 +474,13 @@ export class Composer {
 
     // ---------------------------------------------------------------- R3: verification
     // only phrases no other span already accounts for (time, numbers, linked values, names)
-    const handled = [...spans.filter((x) => x.type !== "content_phrase"), ...links.map((l) => ({ start: l.start, end: l.end }))];
+    const usedSources = new Set([...plan.filters, ...plan.existence.flatMap((e) => e.filters)].map((f) => f.source));
+    const usedLinks = links.filter((l) => usedSources.has(l.id));
+    const handled = [
+      ...spans.filter((x) => x.type === "relative_time" || x.type === "explicit_date" || (x.type === "number" && provenance[`role_${x.id}`]?.value !== "none")),
+      ...spans.filter((x) => (x.type === "proper_noun" || x.type === "quoted") && (usedSources.has(x.id) || usedLinks.some((l) => l.start < x.end && l.end > x.start))),
+      ...usedLinks.map((l) => ({ start: l.start, end: l.end })),
+    ];
     const phrases = spans
       .filter((x) => x.type === "content_phrase")
       .map((x) => {
@@ -645,7 +651,7 @@ export class Composer {
     for (const c of cands) {
       if (c.kind === "column") {
         const cm = model.tables[c.table].columns[splitRef(c.column!)[1]];
-        thresholdCrit[`threshold:col:${c.column}`] = `A limit on each individual ${model.tables[c.table].noun}'s ${cm.humanName}${cm.unit?.kind === "money" ? " (money)" : ""}.`;
+        thresholdCrit[`threshold:col:${c.column}`] = `A limit on each individual ${model.tables[c.table].noun}'s ${cm.humanName}${cm.unit?.kind === "money" ? " (money)" : cm.unit?.kind === "duration" ? " (how long it lasts, e.g. 'longer than 10 minutes')" : ""}.`;
         if (cm.role === "measure_additive") thresholdCrit[`threshold:sum:${c.column}`] = `A limit on the total ${cm.humanName} summed over many ${model.tables[c.table].humanName} for each group ('sold more than 50 units', 'over $100,000 in sales').`;
       } else if (c.kind === "count") thresholdCrit[`threshold:count:${c.table}`] = `A limit on how many ${model.tables[c.table].humanName} something has ('more than 5 ${model.tables[c.table].humanName}', 'at least 3 different ${model.tables[c.table].humanName}').`;
       else if (c.kind === "saved") thresholdCrit[`threshold:saved:${c.saved!.name}`] = `A limit on ${c.saved!.name}.`;
@@ -653,7 +659,7 @@ export class Composer {
     for (const sp of numSpans) {
       const crit: Record<string, string> = {
         result_count: "How many results to show ('top 5', 'first 10', 'the 20 most recent').",
-        time_amount: "A length of time ('last 5 days', '8 weeks').",
+        time_amount: "The length of a time window ending now ('last 5 days', 'past 8 weeks') — not a limit on how long something lasts.",
         ...thresholdCrit,
         part_of_name: "Part of a name, code, or identifier ('Store 5', 'SKU 5512').",
         year_or_date: "Part of a date or a year ('2025', 'March 5').",
@@ -921,6 +927,13 @@ export class Composer {
         });
         kept = kept.filter((dd) => reach(dd));
       }
+      const head = (dd: Dimension) => (dd.kind === "column" ? dd.label.split(" ").pop() : undefined);
+      kept = kept.filter((dd) => {
+        const h = head(dd);
+        if (!h) return true;
+        const rival = kept.find((o) => o !== dd && head(o) === h);
+        return !rival || (pDim.get(dd) ?? 0) > (pDim.get(rival) ?? 0) || ((pDim.get(dd) ?? 0) === (pDim.get(rival) ?? 0) && kept.indexOf(dd) < kept.indexOf(rival));
+      });
       // unique output aliases
       const seenAlias = new Set<string>();
       for (const dd of kept) {
@@ -984,9 +997,15 @@ export class Composer {
       filters.push({ column: ref, op: "is_null", values: [], label: `${humanRef(model, ref)} is missing`, source: qid });
       decide(qid, { about: "filter", value: `${ref} is null`, confidence: noulConfidence(pYes(a1[qid])), answer: a1[qid], loadBearing: true, by: "oracle" });
     }
+    const boolPicks = Object.entries(meta.boolQ)
+      .map(([qid, ref]) => ({ qid, ref, k: argmax(dist(a1[qid])), p: (a1[qid] as ChoiceAnswer | undefined)?.confidence ?? 0 }))
+      .filter((b) => b.k && b.k !== "not_a_condition");
+    const boolWord = (ref: string) => stem(splitRef(ref)[1].replace(/^(is|has)_|bool$|_flag$/g, "").split("_")[0]);
     for (const [qid, ref] of Object.entries(meta.boolQ)) {
       const k = argmax(dist(a1[qid]));
       if (!k || k === "not_a_condition") continue;
+      const me = boolPicks.find((b) => b.qid === qid)!;
+      if (boolPicks.some((b) => b !== me && splitRef(b.ref)[0] === splitRef(ref)[0] && boolWord(b.ref) === boolWord(ref) && (b.p > me.p || (b.p === me.p && boolPicks.indexOf(b) < boolPicks.indexOf(me))))) continue;
       filters.push({ column: ref, op: k === "keep_true" ? "is_true" : "is_false", values: [], label: `${humanRef(model, ref)} is ${k === "keep_true" ? "true" : "false"}`, source: qid });
       decide(qid, { about: "filter", value: `${ref} ${k}`, confidence: (a1[qid] as ChoiceAnswer).confidence, answer: a1[qid], loadBearing: true, by: "oracle" });
     }
@@ -1003,10 +1022,12 @@ export class Composer {
     for (const [role, items] of rowThresh) {
       const [, kind, target] = /^threshold:(col|sum|count|saved):(.+)$/.exec(role) ?? [];
       const lo = items.find((i) => i.op === "between_low"), hi = items.find((i) => i.op === "between_high");
+      const unitWord = (sp: Span) => /^\s*(ms|milliseconds?|secs?|seconds?|mins?|minutes?|hrs?|hours?|days?|weeks?|units?|items?|percent)\b/i.exec(s.request.slice(sp.end))?.[0] ?? "";
+      for (const it of items) it.sp = { ...it.sp, text: it.sp.text + unitWord(it.sp) };
       let op: Op;
       let values: number[];
       let text: string;
-      const conv = (sp: Span) => this.toBaseUnits(kind === "count" ? undefined : target, sp);
+      const conv = (sp: Span) => this.toBaseUnits(kind === "count" ? undefined : target, sp, s.request);
       if (lo && hi) {
         op = "between";
         values = [conv(lo.sp), conv(hi.sp)];
@@ -1087,13 +1108,19 @@ export class Composer {
     };
   }
 
-  private toBaseUnits(target: string | undefined, sp: Span): number {
+  private toBaseUnits(target: string | undefined, sp: Span, request = ""): number {
     let v = sp.value ?? 0;
     if (!target || target.includes(":")) return v;
     const ref = target.startsWith("col:") ? target.slice(4) : target;
     const [t, c] = splitRef(ref);
     const cm = this.model.tables[t]?.columns[c];
     if (cm?.unit?.kind === "money" && cm.unit.divisor) v = v * cm.unit.divisor;
+    if (cm?.unit?.kind === "duration") {
+      // "10 minutes" against a milliseconds column → 600000
+      const word = /^\s*(ms|milliseconds?|s|secs?|seconds?|mins?|minutes?|h|hrs?|hours?|days?)\b/i.exec(request.slice(sp.end))?.[1]?.toLowerCase() ?? "";
+      const secs = /^ms|^milli/.test(word) ? v / 1000 : /^s/.test(word) ? v : /^m/.test(word) ? v * 60 : /^h/.test(word) ? v * 3600 : /^d/.test(word) ? v * 86400 : undefined;
+      v = secs === undefined ? v * (cm.unit.divisor ?? 1) : secs * (cm.unit.divisor ?? 1);
+    }
     if (cm?.unit?.kind === "percent" && cm.unit.fraction && sp.percent) v = v / 100;
     return Math.round(v * 1e6) / 1e6;
   }
@@ -1124,10 +1151,14 @@ export class Composer {
     const existQ: Record<string, { table: string; negated: boolean }> = {};
     if (subj && (d.existenceWanted.absent > 0.35 || d.existenceWanted.present > 0.5)) {
       let i = 0;
-      for (const r of model.relationships) {
-        if (r.to.table !== subj || r.selfReference || model.tables[r.from.table].hidden) continue;
-        const related = model.tables[r.from.table].junction ? undefined : r.from.table;
-        const targets = related ? [related] : model.relationships.filter((x) => x.from.table === r.from.table && x.to.table !== subj).map((x) => x.to.table);
+      const targets = Object.keys(model.tables)
+        .filter((t) => t !== subj && !model.tables[t].hidden && !model.tables[t].junction && model.tables[t].kind === "table" && !this.graph.isUp(subj, t))
+        .map((t) => ({ t, path: this.graph.bestPaths(subj, t)[0] }))
+        .filter((x) => x.path && x.path.downs >= 1 && x.path.steps.length <= 3)
+        .sort((a, b) => a.path.steps.length - b.path.steps.length)
+        .slice(0, 16)
+        .map((x) => x.t);
+      {
         for (const t of targets) {
           if (Object.values(existQ).some((e) => e.table === t)) continue;
           if (d.existenceWanted.absent > 0.35) {
@@ -1217,8 +1248,18 @@ export class Composer {
     }
 
     // ---- existence
+    const subjT = plan.subject ?? plan.measures[0]?.table;
+    const insideOf = (rel: string) => (ref: string) => {
+      const t = splitRef(ref)[0];
+      return t === rel || (this.graph.isUp(rel, t) && !(subjT && this.graph.isUp(subjT, t)));
+    };
+    const yesNeg = Object.entries(existQ)
+      .filter(([qid, e]) => e.negated && yes(a2[qid], 0.5))
+      .sort((a, b) => plan.filters.filter((f) => insideOf(b[1].table)(f.column)).length - plan.filters.filter((f) => insideOf(a[1].table)(f.column)).length || pYes(a2[b[0]]) - pYes(a2[a[0]]));
+    const chosenNeg = yesNeg[0]?.[0];
     for (const [qid, e] of Object.entries(existQ)) {
       if (!yes(a2[qid], 0.5)) continue;
+      if (e.negated && qid !== chosenNeg) continue;
       const ex: Existence = { negated: e.negated, table: e.table, filters: [], label: `${e.negated ? "that have no" : "that have at least one"} ${model.tables[e.table].noun}` };
       decide(qid, { about: "existence", value: `${e.negated ? "absent" : "present"}:${e.table}`, confidence: noulConfidence(pYes(a2[qid])), answer: a2[qid], loadBearing: true, by: "oracle" });
       // scoping by column ownership (§5.9): related-table filters move inside
@@ -1228,6 +1269,12 @@ export class Composer {
         return t === e.table || (this.graph.isUp(e.table, t) && !(subjTable && this.graph.isUp(subjTable, t)));
       };
       ex.filters = plan.filters.filter((f) => inside(f.column));
+      if (e.negated) {
+        for (const f of ex.filters) {
+          if (f.op === "neq") Object.assign(f, { op: "eq", label: f.label.replace(" is not ", " is ") });
+          if (f.op === "not_in") Object.assign(f, { op: "in", label: f.label.replace(" is not ", " is ") });
+        }
+      }
       plan.filters = plan.filters.filter((f) => !inside(f.column));
       if (plan.timeWindow && inside(plan.timeWindow.column)) {
         if (e.negated) {
@@ -1334,7 +1381,7 @@ export class Composer {
     const count = this.resultCount(meta, a1);
     const flag = (k: string) => pYes(a1[`flag_${k}`]);
     if (base && !meta.numSpans.length) return; // follow-up keeps the previous ordering/limit
-    plan.includeEmptyGroups = flag("include_empty_groups") > 0.5;
+    plan.includeEmptyGroups = flag("include_empty_groups") > 0.5 && plan.shape !== "lookup" && plan.dimensions.some((x) => x.kind !== "time");
     plan.distinct = plan.shape === "lookup" && flag("asks_unique") > 0.5 && plan.projections.length > 0;
 
     const hasTimeDim = plan.dimensions.some((x) => x.kind === "time");

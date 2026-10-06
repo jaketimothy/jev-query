@@ -1,0 +1,163 @@
+# Chinook (digital music store) — unseen-schema benchmark.
+# Written before any composer changes for this schema; zero-config run (composer.yaml sets only as_of).
+# as_of: 2026-01-01T00:00:00Z. Invoices run 2021-01-01 → 2025-12-22.
+# Format: same as testbed/eval/cases.yaml.
+
+cases:
+
+- id: CH01
+  request: How many tracks are there?
+  blocks: [single_value, count_rows]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM track
+
+- id: CH02
+  request: Total sales in 2024
+  blocks: [single_value, agg.sum, time.specific_year, business_term]
+  outcomes: [execute, clarify]
+  clarify_on: measure
+  gold:
+    - SELECT sum(total) FROM invoice WHERE invoice_date >= '2024-01-01' AND invoice_date < '2025-01-01'
+
+- id: CH03
+  request: Number of invoices by billing country
+  blocks: [breakdown, dimension.categorical]
+  outcomes: [execute]
+  gold:
+    - SELECT billing_country, count(*) FROM invoice GROUP BY billing_country
+
+- id: CH04
+  request: Top 5 genres by number of tracks
+  blocks: [ranking, join.fk, entity_display, limit.span]
+  outcomes: [execute]
+  compare: keys
+  key: name
+  gold:
+    - SELECT g.name, count(*) FROM track t JOIN genre g ON g.genre_id = t.genre_id GROUP BY g.genre_id, g.name ORDER BY 2 DESC LIMIT 5
+
+- id: CH05
+  request: Which artist has the most albums?
+  blocks: [ranking, flag.single_best, entity_display]
+  outcomes: [execute]
+  compare: keys
+  key: name
+  gold:
+    - SELECT ar.name, count(*) FROM album al JOIN artist ar ON ar.artist_id = al.artist_id GROUP BY ar.artist_id, ar.name ORDER BY 2 DESC LIMIT 1
+
+- id: CH06
+  request: Average track length by genre
+  blocks: [breakdown, agg.avg]
+  outcomes: [execute]
+  gold:
+    - SELECT g.name, round(avg(t.milliseconds), 2) FROM track t JOIN genre g ON g.genre_id = t.genre_id GROUP BY g.genre_id, g.name
+
+- id: CH07
+  request: Revenue by customer country last year
+  blocks: [breakdown, join.fk, time.last_year, business_term]
+  outcomes: [execute, clarify]
+  clarify_on: measure
+  notes: billing_country equals the customer's country for every invoice in this data, so both readings agree.
+  gold:
+    - SELECT c.country, sum(i.total) FROM invoice i JOIN customer c ON c.customer_id = i.customer_id WHERE i.invoice_date >= '2025-01-01' AND i.invoice_date < '2026-01-01' GROUP BY c.country
+
+- id: CH08
+  request: How many customers does each support rep handle?
+  blocks: [breakdown, join.role_named, entity_display.person]
+  outcomes: [execute]
+  compare: keys
+  key: last_name
+  notes: Results should identify the rep by name; the job title is the same for all three reps.
+  gold:
+    - SELECT e.employee_id, e.first_name, e.last_name, count(*) FROM customer c JOIN employee e ON e.employee_id = c.support_rep_id GROUP BY e.employee_id
+
+- id: CH09
+  request: Customers who have never bought a Jazz track
+  blocks: [lookup, existence.not_exists, existence.multi_hop, filter.value_link]
+  outcomes: [execute]
+  compare: keys
+  key: customer_id
+  gold:
+    - >-
+      SELECT c.customer_id FROM customer c WHERE NOT EXISTS (
+        SELECT 1 FROM invoice i JOIN invoice_line il ON il.invoice_id = i.invoice_id JOIN track t ON t.track_id = il.track_id
+        JOIN genre g ON g.genre_id = t.genre_id WHERE i.customer_id = c.customer_id AND g.name = 'Jazz')
+
+- id: CH10
+  request: Which playlists contain more than 1000 tracks?
+  blocks: [lookup, having.count, join.junction]
+  outcomes: [execute]
+  compare: keys
+  key: playlist_id
+  gold:
+    - SELECT p.playlist_id, p.name, count(*) FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id GROUP BY p.playlist_id HAVING count(*) > 1000
+
+- id: CH11
+  request: Monthly number of invoices in 2025
+  blocks: [trend, time_grain.month, time.specific_year]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT date_trunc('month', invoice_date) AS m, count(*) FROM invoice WHERE invoice_date >= '2025-01-01' AND invoice_date < '2026-01-01' GROUP BY 1 ORDER BY 1
+
+- id: CH12
+  request: Tracks longer than 10 minutes
+  blocks: [lookup, filter.numeric_threshold, unit.duration_ms]
+  outcomes: [execute]
+  compare: keys
+  key: track_id
+  notes: milliseconds column; "10 minutes" must become 600000.
+  gold:
+    - SELECT track_id, name, milliseconds FROM track WHERE milliseconds > 600000
+
+- id: CH13
+  request: Average invoice total by year
+  blocks: [trend, time_grain.year, agg.avg]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT date_trunc('year', invoice_date) AS y, round(avg(total), 2) FROM invoice GROUP BY 1 ORDER BY 1
+
+- id: CH14
+  request: How many tracks were sold in 2025?
+  blocks: [single_value, agg.sum, join.fk, time.specific_year]
+  outcomes: [execute]
+  gold:
+    - SELECT sum(il.quantity) FROM invoice_line il JOIN invoice i ON i.invoice_id = il.invoice_id WHERE i.invoice_date >= '2025-01-01' AND i.invoice_date < '2026-01-01'
+    - SELECT count(DISTINCT il.track_id) FROM invoice_line il JOIN invoice i ON i.invoice_id = il.invoice_id WHERE i.invoice_date >= '2025-01-01' AND i.invoice_date < '2026-01-01'
+
+- id: CH15
+  request: Best selling album last year
+  blocks: [ranking, flag.single_best, join.multi_hop]
+  outcomes: [execute, clarify]
+  compare: keys
+  key: title
+  notes: Units sold and invoice-line revenue pick the same album here only if they agree; both are accepted.
+  gold:
+    - >-
+      SELECT al.title, sum(il.quantity) FROM invoice_line il JOIN invoice i ON i.invoice_id = il.invoice_id JOIN track t ON t.track_id = il.track_id
+      JOIN album al ON al.album_id = t.album_id WHERE i.invoice_date >= '2025-01-01' AND i.invoice_date < '2026-01-01'
+      GROUP BY al.album_id, al.title ORDER BY 2 DESC, al.title LIMIT 1
+
+- id: CH16
+  request: List employees hired before 2003
+  blocks: [lookup, time.before_date]
+  outcomes: [execute]
+  compare: keys
+  key: last_name
+  gold:
+    - SELECT employee_id, first_name, last_name, hire_date FROM employee WHERE hire_date < '2003-01-01'
+
+- id: CH17
+  request: Delete the Jazz genre
+  blocks: [shape.unsupported]
+  outcomes: [decline]
+
+- id: CH18
+  request: Which customers are from Brazil?
+  blocks: [lookup, filter.value_link]
+  outcomes: [execute]
+  compare: keys
+  key: customer_id
+  gold:
+    - SELECT customer_id, first_name, last_name FROM customer WHERE country = 'Brazil'

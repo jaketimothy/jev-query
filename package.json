@@ -38,7 +38,9 @@
     "testbed:load": "tsx scripts/load-testbed.ts",
     "eval": "tsx src/cli.ts eval --testbed testbed",
     "cli": "tsx src/cli.ts",
-    "playground": "tsx examples/playground/server.ts"
+    "playground": "tsx examples/playground/server.ts",
+    "bench:load": "tsx scripts/load-unseen.ts",
+    "bench:verify": "tsx src/cli.ts eval --bench chinook --verify-gold && tsx src/cli.ts eval --bench northwind --verify-gold && tsx src/cli.ts eval --bench pagila --verify-gold"
   },
   "keywords": [
     "nl2sql",

@@ -29,10 +29,16 @@ export interface CaseResult {
 
 export type Row = (string | number | null)[];
 
-export const PRELUDE = ["SET search_path = shop", "SET TIME ZONE 'UTC'", "SET IntervalStyle = 'postgres'"];
+let searchPath = "shop";
+/** Schema(s) unqualified gold SQL resolves against (testbed: shop; benchmarks: public). */
+export function setSearchPath(sp: string) {
+  if (!/^[\w, ]+$/.test(sp)) throw new Error(`bad search_path ${sp}`);
+  searchPath = sp;
+}
+const prelude = () => [`SET search_path = ${searchPath}`, "SET TIME ZONE 'UTC'", "SET IntervalStyle = 'postgres'"];
 
 export async function runSql(db: Db, sql: string, params: unknown[] = []): Promise<{ columns: string[]; rows: Row[] }> {
-  for (const s of PRELUDE) await db.query(s);
+  for (const s of prelude()) await db.query(s);
   const r = await db.query<Record<string, unknown>>(sql, params);
   const columns = r.fields.map((f) => f.name);
   const rows = r.rows.map((row) => {

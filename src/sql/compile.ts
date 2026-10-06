@@ -193,8 +193,9 @@ class Ctx {
       case "starts_with": return `${expr} ILIKE ${v(escapeLike(String(pr.values[0])))} || '%'`;
       case "is_null": return `${expr} IS NULL`;
       case "is_not_null": return `${expr} IS NOT NULL`;
-      case "is_true": return `${expr} IS TRUE`;
-      case "is_false": return nullableNeg ? `${expr} IS NOT TRUE` : `${expr} IS FALSE`;
+      // integer 0/1 flags (C6b) compare to numbers
+      case "is_true": return cm.kind === "number" ? `${expr} = 1` : `${expr} IS TRUE`;
+      case "is_false": return cm.kind === "number" ? (nullableNeg ? `(${expr} = 0 OR ${expr} IS NULL)` : `${expr} = 0`) : nullableNeg ? `${expr} IS NOT TRUE` : `${expr} IS FALSE`;
     }
   }
 
@@ -315,12 +316,12 @@ class Ctx {
     }
     const conds = [...corr];
     for (const pr of e.preds) {
-      const ex = this.colExpr(inner, pr.column);
+      const ex = this.colExpr(inner, pr.column, true);
       if (!ex) throw new CompileError(`cannot scope filter ${pr.column} inside EXISTS`, "filter");
       conds.push(this.predicate(ex, pr, this.col(pr.column), inner));
     }
     if (e.window) {
-      const ex = this.colExpr(inner, e.window.column);
+      const ex = this.colExpr(inner, e.window.column, true);
       if (ex) conds.push(...this.timeConds(ex, e.window));
     }
     for (const a of inner.aliases) s.aliases.add(a);
@@ -383,7 +384,9 @@ class Ctx {
       const e = this.colExpr(s, d.column!);
       if (!e) throw new CompileError(`${d.label} is not reachable from ${s.root}`, "dimension");
       const cm = this.col(d.column!);
-      const expr = cm.kind === "date" ? `date_trunc('${d.grain}', ${e})` : `date_trunc('${d.grain}', ${e}, ${this.p.add(this.settings.timezone)})`;
+      // timestamptz is truncated in the org timezone; date and timezone-naive timestamps are already wall-clock
+      const naive = cm.kind === "date" || /without time zone/.test(cm.type) || cm.type === "timestamp";
+      const expr = naive ? `date_trunc('${d.grain}', ${e})` : `date_trunc('${d.grain}', ${e}, ${this.p.add(this.settings.timezone)})`;
       return { select: [`${expr} AS ${qi(d.alias)}`], group: [expr], order: qi(d.alias), names: [d.alias] };
     }
     if (d.kind === "entity") {
@@ -393,7 +396,7 @@ class Ctx {
       const asLookup = this.plan.shape === "lookup" && this.plan.subject === d.table;
       const shown = asLookup
         ? (this.plan.projections.length ? this.plan.projections : defaultProjections(this.model, d.table)).filter((r) => splitRef(r)[0] === d.table && tm.columns[splitRef(r)[1]]?.kind !== "number" || tm.primaryKey.includes(splitRef(r)[1])).map((r) => splitRef(r)[1])
-        : tm.display.length ? tm.display : tm.primaryKey;
+        : tm.display.length ? (displayIdentifies(tm) ? tm.display : [...tm.primaryKey, ...tm.display]) : tm.primaryKey;
       const names = shown.map((c) => (shown.length === 1 ? d.alias : `${d.alias}_${c}`));
       const select = shown.map((c, i) => `${a}.${qi(c)} AS ${qi(names[i])}`);
       return { select, group: [...new Set([...pk, ...shown.map((c) => `${a}.${qi(c)}`)])], order: shown.map((_, i) => qi(names[i])).join(", "), names };
@@ -677,6 +680,13 @@ class Ctx {
     if (this.plan.limit && dimNames.length) sql += `\nLIMIT ${this.p.add(this.plan.limit)}`;
     return this.wrapDerived(sql, columns, dims);
   }
+}
+
+/** Does the display alone identify a row? Names of people usually don't; product names usually do. */
+function displayIdentifies(t: SchemaModel["tables"][string]): boolean {
+  if (t.display.length !== 1) return false;
+  const c = t.columns[t.display[0]];
+  return !!c && (c.isUnique || (c.nDistinct ?? 0) >= t.rowEstimate * 0.98);
 }
 
 export function defaultProjections(model: SchemaModel, table: string): string[] {

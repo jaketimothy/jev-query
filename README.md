@@ -208,12 +208,11 @@ npx jev-query eval --oracle jev --cache .jev-cache --explain    # real Jev, cach
 
 | Oracle | Result | Notes |
 |---|---|---|
-| `JevOracle` (`jev-latest`, TypeSafe native API) | **58 / 61** | First run scored 41/61; four iterations of general code-side fixes (below) brought it to 58. Two wrong answers, one extra clarification. |
+| `JevOracle` (`jev-latest`, TypeSafe native API) | **59 / 61** | First run scored 41/61; general code-side fixes (below) brought it to 59. |
 | `HeuristicOracle` | 60 / 61 | Tuned on these same cases: shows the code side reaches gold given sensible decisions, says nothing about language understanding. |
 
 Remaining Jev failures:
 
-- **B05** "Which products cost less than $20?": Jev splits list price 0.59 / unit cost 0.41, so it asks. Arguably the right behavior.
 - **D05** "phone tickets … each support agent created": Jev reads "support agent" as also filtering `title = 'Support Agent'`. A defensible reading the gold SQL doesn't take.
 - **E02** "amount paid": means captured payments, which nothing in the schema says. Accept it once as a saved measure and it is reused after.
 
@@ -222,8 +221,26 @@ decisions that change the plan (runner-ups are re-decoded and pooled when equiva
 unique alternate keys (`regions.code`) not offered as dimensions, the ranked entity always a dimension of a
 ranking, no `rank` column on rankings, no two-period comparison inside a trend, no single-bucket time grains,
 convention fallback for flat time-column distributions, and asking about business terms only when a word
-appears nowhere in the schema vocabulary. These were developed against this testbed, so the next honest
-check is an unseen schema (Pagila, Chinook, Northwind) with no `composer.yaml`.
+appears nowhere in the schema vocabulary.
+
+### Unseen schemas (zero-config)
+
+Because the testbed was designed alongside the conventions, `bench/` measures schemas the composer was
+not built around — Chinook, Northwind and Pagila, 54 cases written before any change for them, with
+only `as_of` configured:
+
+| | Chinook | Northwind | Pagila | Total |
+|---|---|---|---|---|
+| Zero-config baseline | 11/18 | 14/18 | 14/18 | **39/54** |
+| After general fixes | 17/18 | 18/18 | 17/18 | **52/54** |
+
+Both remaining failures are clarifications, not wrong answers. Details, licenses and what changed are in
+[`bench/README.md`](bench/README.md).
+
+```bash
+npx tsx scripts/load-unseen.ts
+npx jev-query eval --bench pagila --oracle jev --cache .jev-cache --explain
+```
 
 ## Building on it
 

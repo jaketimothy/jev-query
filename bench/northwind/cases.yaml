@@ -1,0 +1,151 @@
+# Northwind (trading company) — unseen-schema benchmark.
+# as_of: 1998-05-07T00:00:00Z. Orders run 1996-07-04 → 1998-05-06.
+
+cases:
+
+- id: NW01
+  request: How many orders were placed in 1997?
+  blocks: [single_value, count_rows, time.specific_year]
+  outcomes: [execute]
+  gold:
+    - SELECT count(*) FROM orders WHERE order_date >= '1997-01-01' AND order_date < '1998-01-01'
+
+- id: NW02
+  request: Total freight by shipper
+  blocks: [breakdown, join.role_named, entity_display]
+  outcomes: [execute]
+  gold:
+    - SELECT s.company_name, sum(o.freight) FROM orders o JOIN shippers s ON s.shipper_id = o.ship_via GROUP BY s.shipper_id, s.company_name
+
+- id: NW03
+  request: Units sold by category in 1997
+  blocks: [breakdown, agg.sum, join.multi_hop, time.specific_year]
+  outcomes: [execute]
+  gold:
+    - >-
+      SELECT c.category_name, sum(od.quantity) FROM order_details od JOIN orders o ON o.order_id = od.order_id JOIN products p ON p.product_id = od.product_id
+      JOIN categories c ON c.category_id = p.category_id WHERE o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01' GROUP BY c.category_id, c.category_name
+
+- id: NW04
+  request: Revenue by category in 1997
+  blocks: [v2.ad_hoc_arithmetic, business_term]
+  outcomes: [clarify, decline]
+  notes: Revenue is unit_price * quantity * (1 - discount); there is no stored line total. A formula is out of v1 scope.
+
+- id: NW05
+  request: Top 3 customers by number of orders
+  blocks: [ranking, limit.span]
+  outcomes: [execute]
+  compare: keys
+  key: company_name
+  notes: Re-keyed from customer_id to company_name after the first run; the answer showed the right three companies by name. Recorded in bench/README.md.
+  gold:
+    - SELECT c.customer_id, c.company_name, count(*) FROM orders o JOIN customers c ON c.customer_id = o.customer_id GROUP BY c.customer_id ORDER BY 3 DESC LIMIT 3
+
+- id: NW06
+  request: Average unit price of products by category
+  blocks: [breakdown, agg.avg, conv.nonadditive_measure]
+  outcomes: [execute]
+  gold:
+    - SELECT c.category_name, round(avg(p.unit_price)::numeric, 2) FROM products p JOIN categories c ON c.category_id = p.category_id GROUP BY c.category_id, c.category_name
+
+- id: NW07
+  request: Which products are discontinued?
+  blocks: [lookup, filter.integer_flag]
+  outcomes: [execute]
+  compare: keys
+  key: product_id
+  notes: discontinued is an integer 0/1 flag, not a quantity.
+  gold:
+    - SELECT product_id, product_name FROM products WHERE discontinued = 1
+
+- id: NW08
+  request: How many orders shipped late?
+  blocks: [v2.column_comparison]
+  outcomes: [clarify, decline]
+  notes: Late means shipped_date > required_date, a comparison between two columns.
+
+- id: NW09
+  request: Number of orders per employee in 1998
+  blocks: [breakdown, entity_display.person, time.specific_year]
+  outcomes: [execute]
+  compare: keys
+  key: last_name
+  gold:
+    - SELECT e.employee_id, e.first_name, e.last_name, count(*) FROM orders o JOIN employees e ON e.employee_id = o.employee_id WHERE o.order_date >= '1998-01-01' AND o.order_date < '1999-01-01' GROUP BY e.employee_id
+
+- id: NW10
+  request: Customers who have never placed an order
+  blocks: [lookup, existence.not_exists]
+  outcomes: [execute]
+  compare: keys
+  key: customer_id
+  gold:
+    - SELECT c.customer_id, c.company_name FROM customers c WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)
+
+- id: NW11
+  request: Products with less than 10 units in stock
+  blocks: [lookup, filter.numeric_threshold, op.lt]
+  outcomes: [execute]
+  compare: keys
+  key: product_id
+  gold:
+    - SELECT product_id, product_name, units_in_stock FROM products WHERE units_in_stock < 10
+
+- id: NW12
+  request: Monthly order count in 1997
+  blocks: [trend, time_grain.month, time.specific_year]
+  outcomes: [execute]
+  compare: ordered
+  gold:
+    - SELECT date_trunc('month', order_date) AS m, count(*) FROM orders WHERE order_date >= '1997-01-01' AND order_date < '1998-01-01' GROUP BY 1 ORDER BY 1
+
+- id: NW13
+  request: Which country do most of our customers come from?
+  blocks: [ranking, flag.single_best, dimension.categorical]
+  outcomes: [execute]
+  compare: keys
+  key: country
+  gold:
+    - SELECT country, count(*) FROM customers GROUP BY country ORDER BY 2 DESC LIMIT 1
+
+- id: NW14
+  request: How many orders were shipped to Germany last month?
+  blocks: [single_value, filter.value_link, time.last_month, time.date_column]
+  outcomes: [execute, clarify]
+  clarify_on: time_column
+  gold:
+    - SELECT count(*) FROM orders WHERE ship_country = 'Germany' AND shipped_date >= '1998-04-01' AND shipped_date < '1998-05-01'
+    - SELECT count(*) FROM orders WHERE ship_country = 'Germany' AND order_date >= '1998-04-01' AND order_date < '1998-05-01'
+
+- id: NW15
+  request: Average freight per order by ship country
+  blocks: [breakdown, agg.avg]
+  outcomes: [execute]
+  gold:
+    - SELECT ship_country, round(avg(freight)::numeric, 2) FROM orders GROUP BY ship_country
+
+- id: NW16
+  request: Total quantity ordered of Chai
+  blocks: [single_value, agg.sum, filter.value_link]
+  outcomes: [execute]
+  gold:
+    - SELECT sum(od.quantity) FROM order_details od JOIN products p ON p.product_id = od.product_id WHERE p.product_name = 'Chai'
+
+- id: NW17
+  request: Which suppliers are in the USA?
+  blocks: [lookup, filter.value_link]
+  outcomes: [execute]
+  compare: keys
+  key: supplier_id
+  gold:
+    - SELECT supplier_id, company_name FROM suppliers WHERE country = 'USA'
+
+- id: NW18
+  request: Employees who report to Andrew Fuller
+  blocks: [v2.self_join, filter.name_across_columns]
+  outcomes: [execute, clarify, decline]
+  compare: keys
+  key: employee_id
+  gold:
+    - SELECT e.employee_id, e.first_name, e.last_name FROM employees e JOIN employees m ON m.employee_id = e.reports_to WHERE m.first_name = 'Andrew' AND m.last_name = 'Fuller'

@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
+import { execScript } from "./sqlscript.js";
 
 const args = process.argv.slice(2);
 const dir = args.includes("--dir") ? args[args.indexOf("--dir") + 1] : ".testbed-db";
@@ -25,30 +26,8 @@ export async function loadTestbed(db: PGlite, root = testbed): Promise<void> {
   }
   await db.exec(readFileSync(join(root, "schema.sql"), "utf8"));
   await db.exec("CREATE EXTENSION IF NOT EXISTS pg_trgm");
-  const seed = readFileSync(seedPath, "utf8").split(/\r?\n/);
-  let pending: string[] = [];
-  const flush = async () => {
-    const stmt = pending.join("\n").trim();
-    pending = [];
-    if (stmt && !/^(BEGIN|COMMIT);?$/i.test(stmt)) await db.exec(stmt);
-  };
-  for (let i = 0; i < seed.length; i++) {
-    const line = seed[i];
-    const m = /^COPY (\w+) \(([^)]*)\) FROM stdin;$/.exec(line);
-    if (!m) {
-      if (/^(BEGIN|COMMIT);$/.test(line)) continue;
-      pending.push(line);
-      if (line.trim().endsWith(";")) await flush();
-      continue;
-    }
-    await flush();
-    const rows: string[] = [];
-    for (i++; seed[i] !== "\\." && i < seed.length; i++) rows.push(seed[i]);
-    await db.query(`COPY shop.${m[1]} (${m[2]}) FROM '/dev/blob'`, [], {
-      blob: new Blob([rows.join("\n") + "\n"]),
-    });
-  }
-  await flush();
+  // seed.sql sets search_path = shop and loads COPY blocks
+  await execScript(db, readFileSync(seedPath, "utf8"));
   await db.exec("ANALYZE");
 }
 
