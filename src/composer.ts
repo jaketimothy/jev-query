@@ -89,6 +89,14 @@ export interface ComposerOptions {
   onRound?: (e: { round: string; state: unknown; questions: Questions; answers: Answers }) => void;
 }
 
+/** Thrown by execute() when the planner's cost estimate exceeds `limits.max_cost`. */
+export class QueryTooExpensiveError extends Error {
+  constructor(readonly cost: number, readonly maxCost: number) {
+    super(`This query is estimated to be too expensive to run (plan cost ${Math.round(cost).toLocaleString("en-US")} > limit ${maxCost.toLocaleString("en-US")}). Narrow it (a time period, a filter) or raise limits.max_cost.`);
+    this.name = "QueryTooExpensiveError";
+  }
+}
+
 // ====================================================================== internals
 
 interface Session {
@@ -311,9 +319,28 @@ export class Composer {
   /** Run a result's SQL read-only with a statement timeout (spec §7 guardrails). */
   async execute(result: Result): Promise<{ columns: OutputColumn[]; rows: Record<string, unknown>[] }> {
     if (result.outcome !== "execute" || !result.sql) throw new Error(`cannot execute a ${result.outcome} result`);
+    // Cost ceiling (spec §7). statement_timeout alone is not enough: PGlite (in-process WASM)
+    // does not enforce it, and a runaway query there blocks the whole process.
+    if (this.settings.maxCost > 0) {
+      const cost = await this.planCost(result.sql, result.params ?? []);
+      if (cost !== undefined && cost > this.settings.maxCost) throw new QueryTooExpensiveError(cost, this.settings.maxCost);
+    }
     const run = async (db: Db) => (await db.query<Record<string, unknown>>(result.sql!, result.params)).rows;
     const rows = this.db.readOnly ? await this.db.readOnly(run, { statementTimeoutMs: this.settings.statementTimeoutMs }) : await run(this.db);
     return { columns: result.columns ?? [], rows };
+  }
+
+  /** EXPLAIN total cost of a statement, or undefined when EXPLAIN is unavailable. */
+  async planCost(sql: string, params: unknown[]): Promise<number | undefined> {
+    try {
+      const r = await this.db.query<Record<string, unknown>>(`EXPLAIN (FORMAT JSON) ${sql}`, params);
+      let plan = Object.values(r.rows[0] ?? {})[0] as unknown;
+      if (typeof plan === "string") plan = JSON.parse(plan);
+      const cost = (plan as { Plan?: { "Total Cost"?: number } }[])?.[0]?.Plan?.["Total Cost"];
+      return typeof cost === "number" ? cost : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /** compose() then execute() when the outcome is execute. */

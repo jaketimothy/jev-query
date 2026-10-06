@@ -119,6 +119,13 @@ describe.skipIf(!have)("composer flows", () => {
     await expect(db.readOnly!((d) => d.query("CREATE TABLE shop.nope (x int)"))).rejects.toThrow(/read-only/);
   });
 
+  it("refuses plans above the cost ceiling instead of hanging (PGlite ignores statement_timeout)", async () => {
+    const ok = await composer.compose("How many orders were placed last month?");
+    const runaway = { ...ok, sql: "SELECT count(*) FROM shop.orders o, shop.order_items i", params: [] };
+    await expect(composer.execute(runaway)).rejects.toThrow(/too expensive/);
+    await expect(composer.execute(ok)).resolves.toBeTruthy();
+  });
+
   it("refuses to run gold SQL with a different prelude (harness sanity)", async () => {
     const r = await runSql(db, "SELECT count(*) FROM orders");
     expect(r.rows[0][0]).toBe(12240);

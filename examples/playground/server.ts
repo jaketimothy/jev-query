@@ -27,17 +27,22 @@ const store = new MemoryStore();
 const composer = await Composer.create({ db, oracle, config, store });
 const results = new Map<string, Result>();
 
-async function respond(result: Result) {
+async function respond(result: Result, t0 = Date.now()) {
   results.set(result.id, result);
+  const composeMs = Date.now() - t0;
+  console.log(`  composed in ${composeMs}ms: ${result.outcome} ${result.rounds.map((r) => `${r.round}:${r.questions}q/${r.ms}ms`).join(" ")}`);
   let data: unknown;
   if (result.outcome === "execute") {
+    const t1 = Date.now();
     try {
       data = await composer.execute(result);
+      console.log(`  executed in ${Date.now() - t1}ms`);
     } catch (e) {
+      console.error(`  execute failed after ${Date.now() - t1}ms: ${(e as Error).message}\n${result.sql}`);
       data = { error: (e as Error).message };
     }
   }
-  return { result, data };
+  return { result, data, timing: { composeMs, totalMs: Date.now() - t0 } };
 }
 
 const json = (v: unknown) => JSON.stringify(v, (_k, x) => (typeof x === "bigint" ? Number(x) : x));
@@ -55,22 +60,35 @@ createServer(async (req, res) => {
       res.end(json({ oracle: oracle.name, tables, saved: (await store.all()).map((r) => ({ id: r.id, kind: r.kind, name: r.kind === "measure" ? r.name : r.name ?? r.request })) }));
       return;
     }
-    const body = await new Promise<Record<string, string>>((ok) => {
+    // parse inside the promise so a bad body rejects instead of crashing the process
+    const body = await new Promise<Record<string, string>>((ok, fail) => {
       let s = "";
       req.on("data", (c) => (s += c));
-      req.on("end", () => ok(s ? JSON.parse(s) : {}));
+      req.on("end", () => {
+        try {
+          ok(s ? JSON.parse(s) : {});
+        } catch (e) {
+          fail(e);
+        }
+      });
+      req.on("error", fail);
     });
+    const t0 = Date.now();
+    const label = body.request ?? (body.option ? `answer ${body.option}` : req.url);
+    console.log(`→ ${req.url} ${JSON.stringify(label)}`);
     let out: unknown;
-    if (req.url === "/api/ask") out = await respond(await composer.compose(body.request, { conversation: body.previous ? results.get(body.previous) : undefined, user: "playground" }));
-    else if (req.url === "/api/answer") out = await respond(await composer.answer(body.clarification, body.option));
+    if (req.url === "/api/ask") out = await respond(await composer.compose(body.request, { conversation: body.previous ? results.get(body.previous) : undefined, user: "playground" }), t0);
+    else if (req.url === "/api/answer") out = await respond(await composer.answer(body.clarification, body.option), t0);
     else if (req.url === "/api/accept") out = await composer.accept(results.get(body.result)!, { scope: "org", name: body.name || undefined, user: "playground" });
     else {
       res.writeHead(404).end();
       return;
     }
+    console.log(`← ${req.url} ${Date.now() - t0}ms`);
     res.writeHead(200, { "content-type": "application/json" });
     res.end(json(out));
   } catch (e) {
+    console.error(`✗ ${req.url}: ${(e as Error).stack ?? e}`);
     res.writeHead(500, { "content-type": "application/json" });
     res.end(json({ error: (e as Error).message }));
   }
