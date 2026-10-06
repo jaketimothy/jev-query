@@ -89,6 +89,14 @@ export interface ComposerOptions {
   onRound?: (e: { round: string; state: unknown; questions: Questions; answers: Answers }) => void;
 }
 
+/** Thrown by execute() when the planner's cost estimate exceeds `limits.max_cost`. */
+export class QueryTooExpensiveError extends Error {
+  constructor(readonly cost: number, readonly maxCost: number) {
+    super(`This query is estimated to be too expensive to run (plan cost ${Math.round(cost).toLocaleString("en-US")} > limit ${maxCost.toLocaleString("en-US")}). Narrow it (a time period, a filter) or raise limits.max_cost.`);
+    this.name = "QueryTooExpensiveError";
+  }
+}
+
 // ====================================================================== internals
 
 interface Session {
@@ -212,7 +220,8 @@ const newId = (p: string) => `${p}_${Date.now().toString(36)}${(counter++).toStr
 export class Composer {
   readonly settings: ResolvedSettings;
   readonly graph: JoinGraph;
-  private sessions = new Map<string, Session>();
+  /** clarification id → the session as it was when asked, and the pin the answer sets */
+  private clarifications = new Map<string, { session: Session; pinKey: string }>();
   private readonly vocab: Set<string>;
 
   private constructor(
@@ -251,15 +260,15 @@ export class Composer {
     return this.run(s);
   }
 
-  /** Answer a clarification; only that decision changes, the rest of the plan is reused. */
+  /**
+   * Answer a clarification; only that decision changes, the rest of the plan is reused
+   * (oracle answers are memoized). Answering the same clarification again with another
+   * option branches from the same point, so users can change their mind.
+   */
   async answer(clarificationId: string, optionKey: string): Promise<Result> {
-    const s = this.sessions.get(clarificationId);
-    if (!s) throw new Error(`unknown clarification ${clarificationId}`);
-    const decision = s.pins.__pending;
-    if (!decision) throw new Error("clarification already answered");
-    delete s.pins.__pending;
-    s.pins[decision] = optionKey;
-    s.rounds = [];
+    const c = this.clarifications.get(clarificationId);
+    if (!c) throw new Error(`unknown clarification ${clarificationId}`);
+    const s: Session = { ...c.session, id: newId("s"), pins: { ...c.session.pins, [c.pinKey]: optionKey }, rounds: [] };
     return this.run(s);
   }
 
@@ -311,9 +320,28 @@ export class Composer {
   /** Run a result's SQL read-only with a statement timeout (spec §7 guardrails). */
   async execute(result: Result): Promise<{ columns: OutputColumn[]; rows: Record<string, unknown>[] }> {
     if (result.outcome !== "execute" || !result.sql) throw new Error(`cannot execute a ${result.outcome} result`);
+    // Cost ceiling (spec §7). statement_timeout alone is not enough: PGlite (in-process WASM)
+    // does not enforce it, and a runaway query there blocks the whole process.
+    if (this.settings.maxCost > 0) {
+      const cost = await this.planCost(result.sql, result.params ?? []);
+      if (cost !== undefined && cost > this.settings.maxCost) throw new QueryTooExpensiveError(cost, this.settings.maxCost);
+    }
     const run = async (db: Db) => (await db.query<Record<string, unknown>>(result.sql!, result.params)).rows;
     const rows = this.db.readOnly ? await this.db.readOnly(run, { statementTimeoutMs: this.settings.statementTimeoutMs }) : await run(this.db);
     return { columns: result.columns ?? [], rows };
+  }
+
+  /** EXPLAIN total cost of a statement, or undefined when EXPLAIN is unavailable. */
+  async planCost(sql: string, params: unknown[]): Promise<number | undefined> {
+    try {
+      const r = await this.db.query<Record<string, unknown>>(`EXPLAIN (FORMAT JSON) ${sql}`, params);
+      let plan = Object.values(r.rows[0] ?? {})[0] as unknown;
+      if (typeof plan === "string") plan = JSON.parse(plan);
+      const cost = (plan as { Plan?: { "Total Cost"?: number } }[])?.[0]?.Plan?.["Total Cost"];
+      return typeof cost === "number" ? cost : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /** compose() then execute() when the outcome is execute. */
@@ -449,7 +477,7 @@ export class Composer {
     await this.applyHierarchy(plan);
 
     // forced clarification: status value vs related rows (F06 pattern; "conflicts are shown")
-    const conflict = this.statusConflict(plan, s.pins);
+    const conflict = this.statusConflict(plan, s);
     if (conflict) return this.finish(s, conflict, provenance, warnings);
 
     // ---------------------------------------------------------------- compile
@@ -505,9 +533,7 @@ export class Composer {
     if (uncovered.length && userDefinedMeasure) warnings.push(`not reflected in the description: ${uncovered.map((u) => u.p.text).join(", ")}`);
     if (uncovered.length && !userDefinedMeasure) {
       const u = uncovered[0];
-      const id = newId("c");
-      s.pins.__pending = `coverage:${u.p.text.toLowerCase()}`;
-      this.sessions.set(id, s);
+      const id = this.register(s, `coverage:${u.p.text.toLowerCase()}`);
       return this.finish(s, {
         outcome: "clarify",
         plan,
@@ -1568,7 +1594,8 @@ export class Composer {
   }
 
   /** Status value vs related rows (e.g. status = 'refunded' vs has a refund row): always ask. */
-  private statusConflict(plan: QueryPlan, pins: Record<string, string>): (Partial<Result> & { outcome: "clarify" }) | undefined {
+  private statusConflict(plan: QueryPlan, s: Session): (Partial<Result> & { outcome: "clarify" }) | undefined {
+    const pins = s.pins;
     for (const f of plan.filters) {
       if ((f.op !== "eq" && f.op !== "in") || f.implied || f.values.length !== 1) continue;
       const [t, c] = splitRef(f.column);
@@ -1586,8 +1613,7 @@ export class Composer {
         return undefined;
       }
       const tn = this.model.tables[t].noun, cn = this.model.tables[child.from.table].noun;
-      const s = { pins } as Session;
-      return this.clarify(s as Session, key, `"${v}" can mean two things here. Which do you mean?`, [
+      return this.clarify(s, key, `"${v}" can mean two things here. Which do you mean?`, [
         { key: "status", label: `${capitalize(tn)}s whose ${cm.humanName} is ${v}`, consequence: `${tn} ${cm.humanName} = '${v}'` },
         { key: "related", label: `${capitalize(tn)}s with at least one ${cn} record (including partial)`, consequence: `EXISTS (a row in ${child.from.table})` },
       ], "filter") as Partial<Result> & { outcome: "clarify" };
@@ -1645,7 +1671,6 @@ export class Composer {
   /** Decode again with one decision pinned; returns the resulting plan's signature. */
   private async probe(s: Session, pinKey: string, value: string): Promise<string | undefined> {
     const pins = { ...s.pins, [pinKey]: value };
-    delete pins.__pending;
     const ps: Session = { ...s, id: newId("p"), pins, rounds: [], probe: true };
     try {
       const r = await this.run(ps);
@@ -1678,10 +1703,15 @@ export class Composer {
     return { label: k, consequence: "" };
   }
 
-  private clarify(s: Session, pinKey: string, question: string, options: ClarifyOption[], decision?: string): Partial<Result> & { outcome: "clarify" } {
+  /** Snapshot the session for a clarification (probes never register one). */
+  private register(s: Session, pinKey: string): string {
     const id = newId("c");
-    s.pins.__pending = pinKey;
-    this.sessions.set(id, s);
+    if (!s.probe) this.clarifications.set(id, { session: { ...s, pins: { ...s.pins }, rounds: [] }, pinKey });
+    return id;
+  }
+
+  private clarify(s: Session, pinKey: string, question: string, options: ClarifyOption[], decision?: string): Partial<Result> & { outcome: "clarify" } {
+    const id = this.register(s, pinKey);
     return { outcome: "clarify", clarification: { id, decision: decision ?? pinKey.split(":")[0], question, options } };
   }
 

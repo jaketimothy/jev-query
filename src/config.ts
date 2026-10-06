@@ -21,7 +21,7 @@ export interface ComposerConfig {
     add?: { from: string; to: string; role?: string }[];
   };
   gating?: { auto_execute_min_confidence?: number; margin_reask?: number; clarify_below?: number };
-  limits?: { default_ranking?: number; max_rows?: number; statement_timeout_ms?: number; lookup_default?: number };
+  limits?: { default_ranking?: number; max_rows?: number; statement_timeout_ms?: number; lookup_default?: number; max_cost?: number };
   introspection?: { sample_when_no_stats?: boolean; check_duration_order?: boolean; max_values?: number };
   pii?: { columns?: string[] };
 }
@@ -61,6 +61,8 @@ export interface ResolvedSettings {
   maxRows: number;
   lookupDefault: number;
   statementTimeoutMs: number;
+  /** Refuse to run plans whose EXPLAIN total cost exceeds this (0 disables). */
+  maxCost: number;
 }
 
 export function resolveSettings(cfg: ComposerConfig = {}): ResolvedSettings {
@@ -75,5 +77,6 @@ export function resolveSettings(cfg: ComposerConfig = {}): ResolvedSettings {
     maxRows: cfg.limits?.max_rows ?? 5000,
     lookupDefault: cfg.limits?.lookup_default ?? 1000,
     statementTimeoutMs: cfg.limits?.statement_timeout_ms ?? 15000,
+    maxCost: cfg.limits?.max_cost ?? 250_000,
   };
 }

@@ -104,6 +104,27 @@ describe.skipIf(!have)("composer flows", () => {
     expect(answered.sql).toMatch(/JOIN shop\.customers/);
   });
 
+  it("answers the status-vs-related-rows clarification either way (F06)", async () => {
+    const r = await composer.compose("How many orders were refunded?");
+    expect(r.clarification?.decision).toBe("filter");
+    const status = await composer.answer(r.clarification!.id, "status");
+    expect(status.outcome).toBe("execute");
+    expect(status.params).toContain("refunded");
+    const related = await composer.answer(r.clarification!.id, "related");
+    expect(related.outcome).toBe("execute");
+    expect(related.sql).toMatch(/EXISTS \(SELECT 1 FROM shop\.refunds/);
+  });
+
+  it("lets the user change their answer to a clarification", async () => {
+    const r = await composer.compose("Number of orders by region last month");
+    const a = await composer.answer(r.clarification!.id, "via:customers");
+    const b = await composer.answer(r.clarification!.id, "role:fulfilled_from");
+    expect(a.sql).toMatch(/shop\.customers/);
+    expect(b.sql).toMatch(/shop\.warehouses/);
+    // the first answer is unaffected by the second
+    expect((await composer.answer(r.clarification!.id, "via:customers")).sql).toBe(a.sql);
+  });
+
   it("follows up on the previous turn (J06)", async () => {
     const prev = await composer.compose("Order total by customer region last month");
     const next = await composer.compose("Same thing but for the East region only, last quarter", { conversation: prev });
@@ -117,6 +138,13 @@ describe.skipIf(!have)("composer flows", () => {
     const data = await composer.execute(r);
     expect(Number(Object.values(data.rows[0])[0])).toBe(3102);
     await expect(db.readOnly!((d) => d.query("CREATE TABLE shop.nope (x int)"))).rejects.toThrow(/read-only/);
+  });
+
+  it("refuses plans above the cost ceiling instead of hanging (PGlite ignores statement_timeout)", async () => {
+    const ok = await composer.compose("How many orders were placed last month?");
+    const runaway = { ...ok, sql: "SELECT count(*) FROM shop.orders o, shop.order_items i", params: [] };
+    await expect(composer.execute(runaway)).rejects.toThrow(/too expensive/);
+    await expect(composer.execute(ok)).resolves.toBeTruthy();
   });
 
   it("refuses to run gold SQL with a different prelude (harness sanity)", async () => {

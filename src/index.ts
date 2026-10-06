@@ -5,7 +5,7 @@
  * a decision model (Jev, or any `Oracle`) picks among them with calibrated
  * probabilities, and code compiles the plan to parameterized Postgres.
  */
-export { Composer } from "./composer.js";
+export { Composer, QueryTooExpensiveError } from "./composer.js";
 export type { ComposeContext, ComposerOptions, Result, Clarification, ClarifyOption, RoundLog } from "./composer.js";
 
 export { parseConfig, resolveSettings } from "./config.js";
